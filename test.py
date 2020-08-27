@@ -3,6 +3,8 @@ from html.parser import HTMLParser
 
 class MyHTMLParser(HTMLParser):
     def __init__(self):
+        super(MyHTMLParser, self).__init__()
+        self.lang_attribute = ""
         self.img_alt_missing = 0
         self.img_alt_empty = 0
         self.img_alt_correct = 0
@@ -11,11 +13,11 @@ class MyHTMLParser(HTMLParser):
         if tag == "html":
             if 'lang' in dict(attrs):
                 if not dict(attrs)['lang'] == "":
-                    print("lang attr exists")
+                    self.lang_attribute = "exists"
                 else:
-                    print("lang attr is empty")
+                    self.lang_attribute = "is empty"
             else:
-                print("lang attr is missing")
+                self.lang_attribute = "is missing"
 
         if tag == "img":
             #print("Encountered a start tag:", tag, "included attrs", attrs)
@@ -33,9 +35,17 @@ class MyHTMLParser(HTMLParser):
     #def handle_data(self, data):
         #print("Encountered some data  :", data)
 
-page_content = requests.get("https://www.nintendo.de/").content
+page_content = requests.get("https://www.telekom.de/").content
 parser = MyHTMLParser()
 parser.feed(str(page_content))
+print("Result")
+print("------------------------------------")
+print("* Lang Attribute")
+print(parser.lang_attribute)
+print("* Alt Tags")
+print("Correct Alt Tags:", parser.img_alt_correct)
+print("Empty Alt Tags:  ", parser.img_alt_empty)
+print("Missing Alt Tags:", parser.img_alt_missing)
 
 def convert_rgb_8bit_value(single_rgb_8bit_value):
     srgb = single_rgb_8bit_value / 255
