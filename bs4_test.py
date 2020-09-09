@@ -95,7 +95,10 @@ def get_stylesheets():
 
     for linktag in soup.findAll('link', rel='stylesheet'):
         if linktag['href'].startswith("/") or not linktag['href'].split("/")[0].__contains__(":"):
-            cssreq = requests.get(url.replace(urlparse(url).path, "") + linktag['href'])
+            if not urlparse(url).path == "/":
+                cssreq = requests.get(url.replace(urlparse(url).path, "") + linktag['href'])
+            else:
+                cssreq = requests.get(url + linktag['href'])
         else:
             cssreq = requests.get(linktag['href'])
         stylesheets.append(cssutils.parseString(cssreq.content))
@@ -112,7 +115,7 @@ def get_rules(sheet, css_list):
                 for single_rule_part in reversed(iterable_single_rule):
                     is_correct = False
                     for css_list_rule in iterable_css_list:
-                        if single_rule_part in css_list_rule[1] or single_rule_part == css_list_rule[0] or single_rule_part == "#" + css_list_rule[2] or single_rule_part in [css_list_rule[0] + "." + class_name for class_name in css_list_rule[1]]:
+                        if single_rule_part in ["." + class_name for class_name in css_list_rule[1]] or single_rule_part == css_list_rule[0] or single_rule_part == "#" + css_list_rule[2] or single_rule_part in [css_list_rule[0] + "." + class_name for class_name in css_list_rule[1]]:
                             is_correct = True
                             starting_rule = False
                             del iterable_css_list[0]
@@ -167,14 +170,19 @@ def get_text_color(text_color, text):
 def get_background_color(background_color, text):
     if background_color == "initial":
         return convert_color(DEFAULT_BACKGROUND_COLOR)
-    elif background_color == "inherit" or background_color == "transparent":
-        return convert_color(get_background_color_attribute(text.parent))
+    elif background_color == "inherit" or background_color == "transparent" or background_color == "none":
+        return convert_color(get_background_color(get_background_color_attribute(text.parent), text.parent))
     elif not background_color == None:
         return convert_color(background_color)
     else:
         return convert_color(DEFAULT_BACKGROUND_COLOR)
 
 def convert_color(color):
+    if type(color) is tuple:
+        return color
+    if color.startswith("rgba"):
+        color = eval(color[4:])
+        return (color[0], color[1], color[2])
     if color.startswith("#"):
         return webcolors.hex_to_rgb(color)
     else:
