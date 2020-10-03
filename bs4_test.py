@@ -9,6 +9,7 @@ cssutils.log.setLevel(logging.FATAL)
 
 stylesheets = []
 
+# set default colors for text, background and buttons that are usually used by the browser
 DEFAULT_TEXT_COLOR = "#000000"
 DEFAULT_BACKGROUND_COLOR = "#FFFFFF"
 DEFAULT_BUTTON_COLOR = "#EFEFEF"
@@ -16,17 +17,20 @@ DEFAULT_BUTTON_COLOR = "#EFEFEF"
 # 3.1.1 H57
 # Document language missing
 def check_lang_attribute():
+    # check if language attribute exists and is not empty
     lang_attribute = soup.find("html").get_attribute_list("lang")[0]
     if not lang_attribute == None:
-        print("Lang attribute is correct")
+        print("Document languaage is set")
     else:
-        print("Lang attribute is missing")
+        print("Document language is missing")
 
 # 1.1.1 H37
 # Missing alternative text
 def check_alt_texts():
+    # get all img elements
     img_tags = soup.find_all("img")
     for img in img_tags:
+        # check if img element has an alternative text that is not empty
         alt_text = img.get_attribute_list('alt')[0]
         if not alt_text == None:
             print("Alt text is correct")
@@ -96,29 +100,44 @@ def check_color_contrast():
 
 # 1.1.1 & 2.4.4
 # Empty button
-# TODO
 def check_buttons():
+    # get all buttons and input elements of the types submit, button and reset
     input_tags = soup.find_all("input", type=["submit", "button", "reset"])
     button_tags = soup.find_all("button")
 
     for input_tag in input_tags:
+        # check if input element has a value attribute that is not empty
         if "value" in input_tag.attrs and not input_tag['value'] == "":
             print("Button has content")
         else:
             print("Button is empty")
 
     for button_tag in button_tags:
+        # check if the button has content or an aria label
         texts_in_button_tag = button_tag.findAll(text=True)
         if not texts_in_button_tag == [] or ("aria-label" in button_tag.attrs and not button_tag["aria-label"] == ""):
             print("Button has content")
         else:
             print("Button is empty")
 
-# 2.4.4 G91 & H33 & ARIA7 & ARIA8
+# 2.4.4 G91 & H30
 # Empty link
-# TODO
 def check_links():
+    # get all a elements
     link_tags = soup.find_all("a")
+    for link_tag in link_tags:
+        # check if link has content
+        texts_in_link_tag = link_tag.findAll(text=True)
+        img_tags = link_tag.findChildren("img" , recursive=False)
+        all_alt_texts_set = True
+        for img_tag in img_tags:
+            alt_text = img_tag.get_attribute_list('alt')[0]
+            if alt_text == None:
+                all_alt_texts_set = False
+        if not texts_in_link_tag == [] or all_alt_texts_set:
+            print("Link has content")
+        else:
+            print("Link is empty")
 
 def get_stylesheets():
     for styletag in soup.findAll('style'):
@@ -169,6 +188,7 @@ def get_rules(css_list):
     return rules
 
 def get_specificity(rule):
+    # get the CSS specificity of a certain rule
     specificity = rule.selectorList[0].specificity
     return specificity[0] * 1000 + specificity[1] * 100 + specificity[2] * 10 + specificity[3]
 
@@ -200,8 +220,8 @@ def extract_texts():
 def get_text_color(text_color, text):
     if text_color == "initial":
         return convert_color(DEFAULT_TEXT_COLOR)
-    elif text_color == "inherit" or text_color == "transparent" or text_color == "none":
-        return convert_color(get_text_color(get_css_attribute_value(text.parent, "color"), text.parent))
+    elif text_color == "inherit" or text_color == "transparent" or text_color == None:
+        return convert_color(get_text_color(get_text_color_attribute(text.parent), text.parent))
     elif not text_color == None:
         return convert_color(text_color)
     else:
@@ -210,7 +230,7 @@ def get_text_color(text_color, text):
 def get_background_color(background_color, text):
     if background_color == "initial":
         return convert_color(DEFAULT_BACKGROUND_COLOR)
-    elif background_color == "inherit" or background_color == "transparent" or background_color == "none":
+    elif background_color == "inherit" or background_color == "transparent" or background_color == None:
         return convert_color(get_background_color(get_background_color_attribute(text.parent), text.parent))
     elif not background_color == None:
         return convert_color(background_color)
@@ -259,6 +279,16 @@ def get_background_color_attribute(text):
     if background_color.startswith("url"):
         background_color = get_background_color_attribute(text.parent)
     return background_color
+
+def get_text_color_attribute(text):
+    text_color = get_css_attribute_value(text, "color")
+    if text_color == None and not text.name == "body" and not text.name == "input":
+        text_color = get_text_color_attribute(text.parent)
+    elif text_color == None and "type" in text.attrs and text["type"] == "submit" and text["type"] == "button" and text["type"] == "reset":
+        return DEFAULT_TEXT_COLOR
+    elif text_color == None:
+        return DEFAULT_TEXT_COLOR
+    return text_color
 
 def convert_rgb_8bit_value(single_rgb_8bit_value):
     srgb = single_rgb_8bit_value / 255
@@ -309,10 +339,14 @@ except requests.exceptions.MissingSchema:
     print("Invalid URL")
     raise SystemExit
 
-get_stylesheets()
-#check_color_contrast()
-check_input_label()
-check_lang_attribute()
-check_alt_texts()
-check_links()
-check_buttons()
+def main():
+    get_stylesheets()
+    check_color_contrast()
+    check_input_label()
+    check_lang_attribute()
+    check_alt_texts()
+    check_links()
+    check_buttons()
+
+if __name__ == "__main__":
+    main()
