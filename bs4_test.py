@@ -277,11 +277,13 @@ def get_background_color(background_color, text):
 def convert_color(color):
     if type(color) is tuple:
         return color
-    if color.startswith("rgba"):
+    if str(color).startswith("rgba"):
         color = eval(color[4:])
         return (color[0], color[1], color[2])
-    if color.startswith("#"):
+    if str(color).startswith("#"):
         return webcolors.hex_to_rgb(color)
+    if str(color).startswith("IntegerRGB"):
+        return color
     else:
         return webcolors.name_to_rgb(color, spec='css3')
 
@@ -375,7 +377,7 @@ try:
     soup = BeautifulSoup(req.text, "html.parser")
 except requests.exceptions.MissingSchema:
     print("Invalid URL")
-    raise SystemExit
+    exit(1)
 
 def main():
     get_stylesheets()
@@ -410,7 +412,7 @@ def main():
         print("Accessibility test successful - can deploy")
     else:
         print("Too many accessibility errors - try fix them!")
-        raise SystemExit
+        exit(1)
 
 if __name__ == "__main__":
     main()
