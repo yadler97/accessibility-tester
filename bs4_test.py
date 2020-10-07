@@ -16,17 +16,21 @@ DEFAULT_BUTTON_COLOR = "#EFEFEF"
 
 # 3.1.1 H57
 # Document language missing
-def check_lang_attribute():
+def check_doc_language():
     # check if language attribute exists and is not empty
     lang_attribute = soup.find("html").get_attribute_list("lang")[0]
     if not lang_attribute == None:
-        print("Document languaage is set")
+        print("Document language is set")
+        return {"category":"doc_language","correct":1,"false":0}
     else:
         print("Document language is missing")
+        return {"category":"doc_language","correct":0,"false":1}
 
 # 1.1.1 H37
 # Missing alternative text
 def check_alt_texts():
+    correct = 0
+    false = 0
     # get all img elements
     img_tags = soup.find_all("img")
     for img in img_tags:
@@ -34,12 +38,18 @@ def check_alt_texts():
         alt_text = img.get_attribute_list('alt')[0]
         if not alt_text == None:
             print("Alt text is correct")
+            correct += 1
         else:
             print("Alt text is missing")
+            false += 1
+
+    return {"category":"alt_texts","correct":correct,"false":false}
 
 # 1.3.1 H44
 # Missing form label
-def check_input_label():
+def check_input_labels():
+    correct = 0
+    false = 0
     # get all input and label tags
     input_tags = soup.find_all("input")
     label_tags = soup.find_all("label")
@@ -56,20 +66,26 @@ def check_input_label():
                         label_correct = True
                 if label_correct == True:
                     print("Input labelled with label tag")
+                    correct += 1
                 else:
                     print("Input not labelled at all")
+                    false += 1
             else:
                 print("Input labelled with aria tag")
+                correct += 1
+
+    return {"category":"input_labels","correct":correct,"false":false}
 
 # 1.4.3 G18 & G145 (& 148)
 # Low contrast
 def check_color_contrast():
+    correct = 0
+    false = 0
     # exclude script, style, title and empty tags as well as doctype and comments
     texts_on_page = extract_texts()
     input_tags = soup.find_all("input")
     text_tags = texts_on_page + input_tags
     for text in text_tags:
-        #print(text.string)
         # exclude invisible texts
         tag_visible = get_css_attribute_value(text, "display")
         if not tag_visible == "none" and (not text.name == "input" or (text.name == "input" and "type" in text.attrs and not text['type'] == "hidden")):
@@ -87,20 +103,28 @@ def check_color_contrast():
 
             
             if not font_size == None and font_size.__contains__("px") and \
-                (int(''.join(filter(str.isdigit, font_size))) > 18 or ((font_weight == "bold" or font_weight == "bolder" or text.name == "strong") and int(''.join(filter(str.isdigit, font_size))) > 14)):
+                (int(''.join(filter(str.isdigit, font_size))) >= 18 or ((font_weight == "bold" or font_weight == "bolder" or text.name == "strong") and int(''.join(filter(str.isdigit, font_size))) >= 14)):
                 if contrast >= 3:
                     print("Contrast meets minimum requirements")
+                    correct += 1
                 else:
                     print("Contrast does not meet minimum requirements")
+                    false += 1
             else:
                 if contrast >= 4.5:
                     print("Contrast meets minimum requirements")
+                    correct += 1
                 else:
                     print("Contrast does not meet minimum requirements")
+                    false += 1
+
+    return {"category":"color_contrast","correct":correct,"false":false}
 
 # 1.1.1 & 2.4.4
 # Empty button
 def check_buttons():
+    correct = 0
+    false = 0
     # get all buttons and input elements of the types submit, button and reset
     input_tags = soup.find_all("input", type=["submit", "button", "reset"])
     button_tags = soup.find_all("button")
@@ -109,20 +133,28 @@ def check_buttons():
         # check if input element has a value attribute that is not empty
         if "value" in input_tag.attrs and not input_tag['value'] == "":
             print("Button has content")
+            correct += 1
         else:
             print("Button is empty")
+            false += 1
 
     for button_tag in button_tags:
         # check if the button has content or an aria label
         texts_in_button_tag = button_tag.findAll(text=True)
         if not texts_in_button_tag == [] or ("aria-label" in button_tag.attrs and not button_tag["aria-label"] == ""):
             print("Button has content")
+            correct += 1
         else:
             print("Button is empty")
+            false += 1
+
+    return {"category":"empty_buttons","correct":correct,"false":false}
 
 # 2.4.4 G91 & H30
 # Empty link
 def check_links():
+    correct = 0
+    false = 0
     # get all a elements
     link_tags = soup.find_all("a")
     for link_tag in link_tags:
@@ -134,10 +166,14 @@ def check_links():
             alt_text = img_tag.get_attribute_list('alt')[0]
             if alt_text == None:
                 all_alt_texts_set = False
-        if not texts_in_link_tag == [] or all_alt_texts_set:
+        if not texts_in_link_tag == [] or (not img_tags == [] and all_alt_texts_set):
             print("Link has content")
+            correct += 1
         else:
             print("Link is empty")
+            false += 1
+
+    return {"category":"empty_links","correct":correct,"false":false}
 
 def get_stylesheets():
     for styletag in soup.findAll('style'):
@@ -206,7 +242,8 @@ def extract_texts():
 
     # remove doctype
     doctype = soup2.find(text=lambda text:isinstance(text, Doctype))
-    doctype.extract()
+    if not doctype == None:
+        doctype.extract()
 
     # get all tags with text
     texts = []
@@ -331,6 +368,7 @@ def get_css_class_list(navigate_text):
     
     return class_list
 
+
 try:
     url = sys.argv[1]
     req = requests.get(url)
@@ -341,12 +379,38 @@ except requests.exceptions.MissingSchema:
 
 def main():
     get_stylesheets()
-    check_color_contrast()
-    check_input_label()
-    check_lang_attribute()
-    check_alt_texts()
-    check_links()
-    check_buttons()
+    result_color_contrast = check_color_contrast()
+    result_input_labels = check_input_labels()
+    result_doc_language = check_doc_language()
+    result_alt_texts = check_alt_texts()
+    result_empty_links = check_links()
+    result_empty_buttons = check_buttons()
+
+    result = {
+        "categories":[
+            result_color_contrast,
+            result_input_labels,
+            result_doc_language,
+            result_alt_texts,
+            result_empty_links,
+            result_empty_buttons
+        ]
+    }
+
+    # calculate correct and false implementations
+    correct = sum(category['correct'] for category in result["categories"])
+    false = sum(category['false'] for category in result["categories"])
+    print("---------------------")
+    print("Correct:",correct)
+    print("Errors:",false)
+    print("Ratio (correct to total):",correct/(correct+false))
+
+    # check if ratio correct/total reaches wanted minimum value
+    if correct/(correct+false) >= float(sys.argv[2]):
+        print("Accessibility test successful - can deploy")
+    else:
+        print("Too many accessibility errors - try fix them!")
+        raise SystemExit
 
 if __name__ == "__main__":
     main()
