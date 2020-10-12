@@ -54,13 +54,17 @@ def check_input_labels():
     input_tags = soup.find_all("input")
     label_tags = soup.find_all("label")
     for input_tag in input_tags:
-        # exclude input tags of type hidden or submit
-        if "type" in input_tag.attrs and not input_tag['type'] == "hidden" and not input_tag['type'] == "submit" and not input_tag['type'] == "button" and not input_tag['type'] == "reset":
-            # check if input tag uses aria label
+        # exclude input tags of type hidden, submit, reset and button
+        if "type" in input_tag.attrs and not input_tag['type'] == "hidden" and not input_tag['type'] == "submit" and not input_tag['type'] == "reset" and not input_tag['type'] == "button":
+            # check if input is of type image and has a alt text that is not empty
             if input_tag['type'] == "image" and "alt" in input_tag.attrs and not input_tag['alt'] == "":
                 print("Input of type image labelled with alt text")
                 correct += 1
-            elif not "aria-labelledby" in input_tag.attrs:
+            # check if input tag uses aria-labelledby
+            elif "aria-labelledby" in input_tag.attrs and not input_tag['aria-labelledby'] == "":
+                print("Input labelled with aria-labelledby attribute")
+                correct += 1
+            else:
                 # check if input tag has a corresponding label tag
                 label_correct = False
                 for label_tag in label_tags:
@@ -73,9 +77,6 @@ def check_input_labels():
                 else:
                     print("Input not labelled at all")
                     false += 1
-            else:
-                print("Input labelled with aria-labelledby attribute")
-                correct += 1
 
     return {"category":"input_labels","correct":correct,"false":false}
 
