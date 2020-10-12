@@ -45,7 +45,7 @@ def check_alt_texts():
 
     return {"category":"alt_texts","correct":correct,"false":false}
 
-# 1.3.1 H44
+# 1.3.1 H44 & ARIA16
 # Missing form label
 def check_input_labels():
     correct = 0
@@ -57,7 +57,7 @@ def check_input_labels():
         # exclude input tags of type hidden or submit
         if "type" in input_tag.attrs and not input_tag['type'] == "hidden" and not input_tag['type'] == "submit" and not input_tag['type'] == "button" and not input_tag['type'] == "reset":
             # check if input tag uses aria label
-            if not "aria-label" in input_tag.attrs and not "aria-labelledby" in input_tag.attrs:
+            if not "aria-labelledby" in input_tag.attrs:
                 # check if input tag has a corresponding label tag
                 label_correct = False
                 for label_tag in label_tags:
@@ -71,7 +71,7 @@ def check_input_labels():
                     print("Input not labelled at all")
                     false += 1
             else:
-                print("Input labelled with aria tag")
+                print("Input labelled with aria-labelledby attribute")
                 correct += 1
 
     return {"category":"input_labels","correct":correct,"false":false}
