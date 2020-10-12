@@ -57,7 +57,10 @@ def check_input_labels():
         # exclude input tags of type hidden or submit
         if "type" in input_tag.attrs and not input_tag['type'] == "hidden" and not input_tag['type'] == "submit" and not input_tag['type'] == "button" and not input_tag['type'] == "reset":
             # check if input tag uses aria label
-            if not "aria-labelledby" in input_tag.attrs:
+            if input_tag['type'] == "image" and "alt" in input_tag.attrs and not input_tag['alt'] == "":
+                print("Input of type image labelled with alt text")
+                correct += 1
+            elif not "aria-labelledby" in input_tag.attrs:
                 # check if input tag has a corresponding label tag
                 label_correct = False
                 for label_tag in label_tags:
