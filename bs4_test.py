@@ -99,7 +99,7 @@ def check_color_contrast():
             print(text.name, text_color, background_color)
 
             # calculate contrast between text color and background color
-            contrast = get_contrast(text_color, background_color)
+            contrast = get_contrast_ratio(text_color, background_color)
 
             # get font size and font weight
             font_size = get_css_attribute_value(text, "font-size")
@@ -333,14 +333,8 @@ def get_text_color_attribute(text):
         return DEFAULT_TEXT_COLOR
     return text_color
 
-def convert_rgb_8bit_value(single_rgb_8bit_value):
-    srgb = single_rgb_8bit_value / 255
-    if srgb <= 0.03928:
-        return srgb / 12.92
-    else:
-        return ((srgb + 0.055) / 1.055) ** 2.4
-
-def get_contrast(text_color, background_color):
+def get_contrast_ratio(text_color, background_color):
+    # preparing the RGB values
     r_1 = convert_rgb_8bit_value(text_color[0])
     g_1 = convert_rgb_8bit_value(text_color[1])
     b_1 = convert_rgb_8bit_value(text_color[2])
@@ -348,15 +342,29 @@ def get_contrast(text_color, background_color):
     g_2 = convert_rgb_8bit_value(background_color[1])
     b_2 = convert_rgb_8bit_value(background_color[2])
 
+    # calculating the relative luminance
     l_1 = 0.2126 * r_1 + 0.7152 * g_1 + 0.0722 * b_1
     l_2 = 0.2126 * r_2 + 0.7152 * g_2 + 0.0722 * b_2
 
+    # check if l_1 or l_2 is lighter
     if l_1 > l_2:
+        # calculating contrast ration when l_1 is the relative luminance of the lighter colour
         contrast_ratio = (l_1 + 0.05) / (l_2 + 0.05)
     else:
+        # calculating contrast ration when l_2 is the relative luminance of the lighter colour
         contrast_ratio = (l_2 + 0.05) / (l_1 + 0.05)
 
     return contrast_ratio
+
+def convert_rgb_8bit_value(single_rgb_8bit_value):
+    # dividing the 8-bit value through 255
+    srgb = single_rgb_8bit_value / 255
+
+    # check if the srgb value is lower than or equal to 0.03928
+    if srgb <= 0.03928:
+        return srgb / 12.92
+    else:
+        return ((srgb + 0.055) / 1.055) ** 2.4
 
 def get_css_class_list(navigate_text):
     class_list = []
