@@ -15,11 +15,11 @@ DEFAULT_BACKGROUND_COLOR = "#FFFFFF"
 DEFAULT_BUTTON_COLOR = "#EFEFEF"
 
 # 3.1.1 H57
-# Document language missing
+# Missing document language
 def check_doc_language():
     # check if language attribute exists and is not empty
-    lang_attribute = soup.find("html").get_attribute_list("lang")[0]
-    if not lang_attribute == None:
+    lang_attr = soup.find("html").get_attribute_list("lang")[0]
+    if not lang_attr == None:
         print("Document language is set")
         return {"category":"doc_language","correct":1,"false":0}
     else:
@@ -42,7 +42,7 @@ def check_alt_texts():
         else:
             print("Alt text is missing")
             false += 1
-
+    
     return {"category":"alt_texts","correct":correct,"false":false}
 
 # 1.3.1 H44 & ARIA16
