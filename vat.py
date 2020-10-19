@@ -145,7 +145,7 @@ def check_buttons():
     for button_tag in button_tags:
         # check if the button has content or an aria label
         texts_in_button_tag = button_tag.findAll(text=True)
-        if not texts_in_button_tag == [] or ("aria-label" in button_tag.attrs and not button_tag["aria-label"] == ""):
+        if not texts_in_button_tag == [] or ("title" in button_tag.attrs and not button_tag["title"] == ""):
             print("Button has content")
             correct += 1
         else:
