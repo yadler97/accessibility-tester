@@ -387,8 +387,11 @@ try:
     url = sys.argv[1]
     req = requests.get(url)
     soup = BeautifulSoup(req.text, "html.parser")
+    if not 0 <= float(sys.argv[2]) <= 1:
+        print("ERROR: Accessibility level must be between 0 and 1")
+        exit(1)
 except requests.exceptions.MissingSchema:
-    print("Invalid URL")
+    print("ERROR: Invalid URL")
     exit(1)
 
 def main():
