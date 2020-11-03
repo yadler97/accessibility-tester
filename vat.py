@@ -313,7 +313,7 @@ def get_background_color_attribute(text):
     background_color = get_css_attribute_value(text, "background-color")
     if background_color == None:
         background_color = get_css_attribute_value(text, "background")
-    if background_color == None and not text.name == "body" and not text.name == "input":
+    if background_color == None and not text.name == "html" and not text.name == "input":
         background_color = get_background_color_attribute(text.parent)
     elif background_color == None and "type" in text.attrs and text["type"] == "submit" and text["type"] == "button" and text["type"] == "reset":
         return DEFAULT_BUTTON_COLOR
@@ -325,7 +325,7 @@ def get_background_color_attribute(text):
 
 def get_text_color_attribute(text):
     text_color = get_css_attribute_value(text, "color")
-    if text_color == None and not text.name == "body" and not text.name == "input":
+    if text_color == None and not text.name == "html" and not text.name == "input":
         text_color = get_text_color_attribute(text.parent)
     elif text_color == None and "type" in text.attrs and text["type"] == "submit" and text["type"] == "button" and text["type"] == "reset":
         return DEFAULT_TEXT_COLOR
@@ -418,9 +418,13 @@ def main():
     correct = sum(category['correct'] for category in result["categories"])
     false = sum(category['false'] for category in result["categories"])
     print("---------------------")
-    print("Correct:",correct)
-    print("Errors:",false)
-    print("Ratio (correct to total):",correct/(correct+false))
+    print("Correct:", correct)
+    for category in result["categories"]:
+        print(" ", category['category'] + ":", category['correct'])
+    print("Errors:", false)
+    for category in result["categories"]:
+        print(" ", category['category'] + ":", category['false'])
+    print("Ratio (correct to total):", correct/(correct+false))
 
     # check if ratio correct/total reaches wanted minimum value
     if correct/(correct+false) >= float(sys.argv[2]):
