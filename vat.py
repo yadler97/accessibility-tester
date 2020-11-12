@@ -32,10 +32,10 @@ def check_alt_texts():
     correct = 0
     false = 0
     # get all img elements
-    img_tags = soup.find_all("img")
-    for img in img_tags:
+    img_elements = soup.find_all("img")
+    for img_element in img_elements:
         # check if img element has an alternative text that is not empty
-        alt_text = img.get_attribute_list('alt')[0]
+        alt_text = img_element.get_attribute_list('alt')[0]
         if not alt_text == None:
             print("Alt text is correct")
             correct += 1
@@ -50,29 +50,29 @@ def check_alt_texts():
 def check_input_labels():
     correct = 0
     false = 0
-    # get all input and label tags
-    input_tags = soup.find_all("input")
-    label_tags = soup.find_all("label")
-    for input_tag in input_tags:
-        # exclude input tags of type hidden, submit, reset and button
-        if "type" in input_tag.attrs and not input_tag['type'] == "hidden" and not input_tag['type'] == "submit" and not input_tag['type'] == "reset" and not input_tag['type'] == "button":
+    # get all input and label elements
+    input_elements = soup.find_all("input")
+    label_elements = soup.find_all("label")
+    for input_element in input_elements:
+        # exclude input element of type hidden, submit, reset and button
+        if "type" in input_element.attrs and not input_element['type'] == "hidden" and not input_element['type'] == "submit" and not input_element['type'] == "reset" and not input_element['type'] == "button":
             # check if input is of type image and has a alt text that is not empty
-            if input_tag['type'] == "image" and "alt" in input_tag.attrs and not input_tag['alt'] == "":
+            if input_element['type'] == "image" and "alt" in input_element.attrs and not input_element['alt'] == "":
                 print("Input of type image labelled with alt text")
                 correct += 1
-            # check if input tag uses aria-labelledby
-            elif "aria-labelledby" in input_tag.attrs and not input_tag['aria-labelledby'] == "":
+            # check if input element uses aria-labelledby
+            elif "aria-labelledby" in input_element.attrs and not input_element['aria-labelledby'] == "":
                 print("Input labelled with aria-labelledby attribute")
                 correct += 1
             else:
-                # check if input tag has a corresponding label tag
+                # check if input element has a corresponding label element
                 label_correct = False
-                for label_tag in label_tags:
-                    # check if "for" attribute of label tag is identical to "id" of input tag
-                    if "for" in label_tag.attrs and "id" in input_tag.attrs and label_tag['for'] == input_tag['id']:
+                for label_element in label_elements:
+                    # check if "for" attribute of label element is identical to "id" of input element
+                    if "for" in label_element.attrs and "id" in input_element.attrs and label_element['for'] == input_element['id']:
                         label_correct = True
                 if label_correct == True:
-                    print("Input labelled with label tag")
+                    print("Input labelled with label element")
                     correct += 1
                 else:
                     print("Input not labelled at all")
@@ -85,14 +85,14 @@ def check_input_labels():
 def check_color_contrast():
     correct = 0
     false = 0
-    # exclude script, style, title and empty tags as well as doctype and comments
+    # exclude script, style, title and empty elements as well as doctype and comments
     texts_on_page = extract_texts()
-    input_tags = soup.find_all("input")
-    text_tags = texts_on_page + input_tags
-    for text in text_tags:
+    input_elements = soup.find_all("input")
+    elements_with_text = texts_on_page + input_elements
+    for text in elements_with_text:
         # exclude invisible texts
-        tag_visible = get_css_attribute_value(text, "display")
-        if not tag_visible == "none" and (not text.name == "input" or (text.name == "input" and "type" in text.attrs and not text['type'] == "hidden")):
+        element_visible = get_css_attribute_value(text, "display")
+        if not element_visible == "none" and (not text.name == "input" or (text.name == "input" and "type" in text.attrs and not text['type'] == "hidden")):
             text_color = get_text_color(get_css_attribute_value(text, "color"), text)
             background_color = get_background_color(get_background_color_attribute(text), text)
 
@@ -130,22 +130,22 @@ def check_buttons():
     correct = 0
     false = 0
     # get all buttons and input elements of the types submit, button and reset
-    input_tags = soup.find_all("input", type=["submit", "button", "reset"])
-    button_tags = soup.find_all("button")
+    input_elements = soup.find_all("input", type=["submit", "button", "reset"])
+    button_elements = soup.find_all("button")
 
-    for input_tag in input_tags:
+    for input_element in input_elements:
         # check if input element has a value attribute that is not empty
-        if "value" in input_tag.attrs and not input_tag['value'] == "":
+        if "value" in input_element.attrs and not input_element['value'] == "":
             print("Button has content")
             correct += 1
         else:
             print("Button is empty")
             false += 1
 
-    for button_tag in button_tags:
+    for button_element in button_elements:
         # check if the button has content or a title
-        texts_in_button_tag = button_tag.findAll(text=True)
-        if not texts_in_button_tag == [] or ("title" in button_tag.attrs and not button_tag["title"] == ""):
+        texts = button_element.findAll(text=True)
+        if not texts == [] or ("title" in button_element.attrs and not button_element["title"] == ""):
             print("Button has content")
             correct += 1
         else:
@@ -160,17 +160,17 @@ def check_links():
     correct = 0
     false = 0
     # get all a elements
-    link_tags = soup.find_all("a")
-    for link_tag in link_tags:
+    link_elements = soup.find_all("a")
+    for link_element in link_elements:
         # check if link has content
-        texts_in_link_tag = link_tag.findAll(text=True)
-        img_tags = link_tag.findChildren("img" , recursive=False)
+        texts_in_link_element = link_element.findAll(text=True)
+        img_elements = link_element.findChildren("img" , recursive=False)
         all_alt_texts_set = True
-        for img_tag in img_tags:
-            alt_text = img_tag.get_attribute_list('alt')[0]
+        for img_element in img_elements:
+            alt_text = img_element.get_attribute_list('alt')[0]
             if alt_text == None:
                 all_alt_texts_set = False
-        if not texts_in_link_tag == [] or (not img_tags == [] and all_alt_texts_set):
+        if not texts_in_link_element == [] or (not img_elements == [] and all_alt_texts_set):
             print("Link has content")
             correct += 1
         else:
@@ -180,10 +180,12 @@ def check_links():
     return {"category":"empty_links","correct":correct,"false":false}
 
 def get_stylesheets():
+    # collect styles in style elements
     for styletag in soup.findAll('style'):
         if not styletag.string == None:
             stylesheets.append(cssutils.parseString(styletag.string))
 
+    # collect styles in stylesheets
     for linktag in soup.findAll('link', rel='stylesheet'):
         if linktag['href'].startswith("/") or not linktag['href'].split("/")[0].__contains__(":"):
             if not urlparse(url).path == "/":
@@ -235,9 +237,9 @@ def get_specificity(rule):
 def extract_texts():
     soup2 = soup
 
-    # remove script, style and title tags
-    for invisible_tag in soup2(["script", "style", "title"]):
-        invisible_tag.extract()
+    # remove script, style and title elements
+    for invisible_element in soup2(["script", "style", "title"]):
+        invisible_element.extract()
 
     # remove comments
     comments = soup2.findAll(text=lambda text:isinstance(text, Comment))
@@ -249,7 +251,7 @@ def extract_texts():
     if not doctype == None:
         doctype.extract()
 
-    # get all tags with text
+    # get all elements with text
     texts = []
     texts_on_page = soup2.findAll(text=True)
     for text in texts_on_page:
@@ -259,6 +261,7 @@ def extract_texts():
     return texts
 
 def get_text_color(text_color, text):
+    # cover special cases like initial and inherit
     if text_color == "initial":
         return convert_color(DEFAULT_TEXT_COLOR)
     elif text_color == "inherit" or text_color == "transparent" or text_color == None:
@@ -269,6 +272,7 @@ def get_text_color(text_color, text):
         return convert_color(DEFAULT_TEXT_COLOR)
 
 def get_background_color(background_color, text):
+    # cover special cases like initial and inherit
     if background_color == "initial":
         return convert_color(DEFAULT_BACKGROUND_COLOR)
     elif background_color == "inherit" or background_color == "transparent" or background_color == None:
@@ -279,6 +283,7 @@ def get_background_color(background_color, text):
         return convert_color(DEFAULT_BACKGROUND_COLOR)
 
 def convert_color(color):
+    # check the current format of the color value and convert it if in wrong format
     if type(color) is tuple:
         return color
     if str(color).startswith("rgba"):
@@ -298,18 +303,21 @@ def get_css_attribute_value(text, attribute):
         if not sheet[attribute] == "":
             return sheet[attribute]
 
+    # get path of element in DOM tree
     class_list = get_css_class_list(text)
 
+    # get style rules applying for this path
     rules = get_rules(class_list)
+
+    # get attribute value for rule with the highest specificity
     for rule in rules:
         if not rule.style[attribute] == "":
             return rule.style[attribute]
-
-    # * rule TODO
     
     return None
 
 def get_background_color_attribute(text):
+    # traverse tree until element with wanted attribute is found
     background_color = get_css_attribute_value(text, "background-color")
     if background_color == None:
         background_color = get_css_attribute_value(text, "background")
@@ -324,6 +332,7 @@ def get_background_color_attribute(text):
     return background_color
 
 def get_text_color_attribute(text):
+    # traverse tree until element with wanted attribute is found
     text_color = get_css_attribute_value(text, "color")
     if text_color == None and not text.name == "html" and not text.name == "input":
         text_color = get_text_color_attribute(text.parent)
@@ -387,15 +396,19 @@ try:
     url = sys.argv[1]
     req = requests.get(url)
     soup = BeautifulSoup(req.text, "html.parser")
+    # check if given accessibility level has correct format
     if not 0 <= float(sys.argv[2]) <= 1:
         print("ERROR: Accessibility level must be between 0 and 1")
         exit(1)
 except requests.exceptions.MissingSchema:
+    # exit when URL is invalid
     print("ERROR: Invalid URL")
     exit(1)
 
 def main():
     get_stylesheets()
+
+    # execute the six tests
     result_color_contrast = check_color_contrast()
     result_input_labels = check_input_labels()
     result_doc_language = check_doc_language()
