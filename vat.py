@@ -406,10 +406,11 @@ except requests.exceptions.MissingSchema:
     exit(1)
 
 def main():
-    get_stylesheets()
+    #get_stylesheets()
 
     # execute the six tests
-    result_color_contrast = check_color_contrast()
+    #result_color_contrast = check_color_contrast()
+    result_color_contrast = {"category":"color_contrast","correct":0,"false":0}
     result_input_labels = check_input_labels()
     result_doc_language = check_doc_language()
     result_alt_texts = check_alt_texts()
