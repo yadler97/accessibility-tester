@@ -3,6 +3,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import sys
 import validators
+import urllib.parse
+import time
 
 class VAT:
     def __init__(self, url):
@@ -13,6 +15,31 @@ class VAT:
         self.driver.set_window_size(1120, 550)
         self.driver.get(url)
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
+
+        #self.link_list = []
+
+        #link_elements = self.page.find_all("a")
+        #for link_element in link_elements:
+        #    if "href" in link_element.attrs and not link_element['href'] == "":
+        #        joined_url = urllib.parse.urljoin(url, link_element['href'])
+        #        if joined_url not in self.link_list:
+        #            self.link_list.append(joined_url)
+
+        self.link_list = self.driver.find_elements_by_tag_name("a")
+
+    def test_subpages(self):
+        for i in range(len(self.link_list)):
+            self.driver.execute_script("elements = document.getElementsByTagName('a'); for (var element of elements) {element.setAttribute('target', '')}")
+            link = self.driver.find_elements_by_tag_name("a")[i]
+            link.click()
+            #self.driver.get_screenshot_as_file(str(i) + ".png")
+            self.page = BeautifulSoup(self.driver.page_source, "html.parser")
+            print("\n" + self.driver.current_url + "\n---------------------")
+            self.check_doc_language()
+            self.check_alt_texts()
+            self.check_input_labels()
+            self.check_buttons()
+            self.driver.back()
 
     # 3.1.1 H57
     # Missing document language
@@ -132,6 +159,8 @@ def main():
     vat.check_alt_texts()
     vat.check_input_labels()
     vat.check_buttons()
+
+    vat.test_subpages()
 
     vat.driver.quit()
 
