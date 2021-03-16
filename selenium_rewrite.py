@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment, Doctype
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
@@ -19,19 +19,11 @@ class VAT:
         self.driver.set_window_size(1980, 1080)
         self.driver.get(url)
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
-        self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0}
-        self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0}
-
-        #self.link_list = []
-
-        #link_elements = self.page.find_all("a")
-        #for link_element in link_elements:
-        #    if "href" in link_element.attrs and not link_element['href'] == "":
-        #        joined_url = urllib.parse.urljoin(url, link_element['href'])
-        #        if joined_url not in self.link_list:
-        #            self.link_list.append(joined_url)
+        self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
+        self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
 
         self.visited_links = []
+
 
     def test_subpages(self):
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
@@ -41,6 +33,7 @@ class VAT:
         self.check_input_labels()
         self.check_buttons()
         self.check_links()
+        self.check_color_contrast()
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.driver.get_screenshot_as_file(dir_path + "/screenshots/" + str(time.time()) + ".png")
@@ -63,13 +56,10 @@ class VAT:
 
             self.driver.back()
 
+
     # 3.1.1 H57
     # Missing document language
     def check_doc_language(self):
-        #divs = self.driver.find_elements_by_tag_name("p")
-        #for div in divs:
-        #    print(div, div.value_of_css_property('background-color'))
-        
         # check if language attribute exists and is not empty
         lang_attr = self.page.find("html").get_attribute_list("lang")[0]
         if not lang_attr == None:
@@ -78,6 +68,7 @@ class VAT:
         else:
             print("Document language is missing")
             self.wrong["doc_language"] += 1
+
 
     # 1.1.1 H37
     # Missing alternative text
@@ -93,6 +84,7 @@ class VAT:
             else:
                 print("Alt text is missing")
                 self.wrong["alt_texts"] += 1
+
 
     # 1.3.1 H44 & ARIA16
     # Missing form label
@@ -125,6 +117,7 @@ class VAT:
                         print("Input not labelled at all")
                         self.wrong["input_labels"] += 1
 
+
     # 1.1.1 & 2.4.4
     # Empty button
     def check_buttons(self):
@@ -151,6 +144,7 @@ class VAT:
                 print("Button is empty")
                 self.wrong["empty_buttons"] += 1
 
+
     # 2.4.4 G91 & H30
     # Empty link
     def check_links(self):
@@ -171,6 +165,48 @@ class VAT:
             else:
                 print("Link is empty")
                 self.wrong["empty_links"] += 1
+
+
+    # 1.4.3 G18 & G145 (& 148)
+    # Low contrast
+    def check_color_contrast(self):
+        # exclude script, style, title and empty elements as well as doctype and comments
+        texts_on_page = extract_texts(self.page)
+        input_elements = self.page.find_all("input")
+        elements_with_text = texts_on_page + input_elements
+        for text in elements_with_text:
+            selenium_element = self.driver.find_element_by_xpath(xpath_soup(text))
+            # exclude invisible texts
+            element_visible = selenium_element.value_of_css_property('display')
+            if not element_visible == "none" and (not text.name == "input" or (text.name == "input" and "type" in text.attrs and not text['type'] == "hidden")):
+                text_color = selenium_element.value_of_css_property('color')
+                background_color = get_background_color(self.driver, text)
+                print(text.name, text_color, background_color)
+
+                # calculate contrast between text color and background color
+                contrast = get_contrast_ratio(eval(text_color[4:]), eval(background_color[4:]))
+
+                # get font size and font weight
+                font_size = selenium_element.value_of_css_property('font-size')
+                font_weight = selenium_element.value_of_css_property('font-weight')
+
+                
+                if not font_size == None and font_size.__contains__("px") and \
+                    (int(''.join(filter(str.isdigit, font_size))) >= 18 or ((font_weight == "bold" or font_weight == "bolder" or text.name == "strong") and int(''.join(filter(str.isdigit, font_size))) >= 14)):
+                    if contrast >= 3:
+                        print("Contrast meets minimum requirements")
+                        self.correct["color_contrast"] += 1
+                    else:
+                        print("Contrast does not meet minimum requirements")
+                        self.wrong["color_contrast"] += 1
+                else:
+                    if contrast >= 4.5:
+                        print("Contrast meets minimum requirements")
+                        self.correct["color_contrast"] += 1
+                    else:
+                        print("Contrast does not meet minimum requirements")
+                        self.wrong["color_contrast"] += 1
+
 
     def calculate_result(self):
         # calculate correct and false implementations
@@ -193,6 +229,7 @@ class VAT:
             sys.tracebacklimit = 0
             raise Exception("Too many accessibility errors - try fix them!")
 
+
 def main():
     url = sys.argv[1]
     required_degree = float(sys.argv[2])
@@ -210,6 +247,98 @@ def main():
     vat.driver.quit()
 
     vat.calculate_result()
+
+
+
+# src: https://gist.github.com/ergoithz/6cf043e3fdedd1b94fcf
+def xpath_soup(element):
+    if element == None:
+        return '/html'
+    components = []
+    child = element if element.name else element.parent
+    for parent in child.parents:  # type: bs4.element.Tag
+        siblings = parent.find_all(child.name, recursive=False)
+        components.append(
+            child.name if 1 == len(siblings) else '%s[%d]' % (
+                child.name,
+                next(i for i, s in enumerate(siblings, 1) if s is child)
+                )
+            )
+        child = parent
+    components.reverse()
+    if components == []:
+        return '/html'
+    return '/%s' % '/'.join(components)
+
+def extract_texts(soup):
+    soup2 = soup
+
+    # remove script, style and title elements
+    for invisible_element in soup2(["script", "style", "title", "noscript"]):
+        invisible_element.extract()
+
+    # remove comments
+    comments = soup2.findAll(text=lambda text:isinstance(text, Comment))
+    for comment in comments:
+        comment.extract()
+
+    # remove doctype
+    doctype = soup2.find(text=lambda text:isinstance(text, Doctype))
+    if not doctype == None:
+        doctype.extract()
+
+    # get all elements with text
+    texts = []
+    texts_on_page = soup2.findAll(text=True)
+    for text in texts_on_page:
+        if not text.strip() == "" and not text == "\n":
+            texts.append(text.parent)
+
+    return texts
+
+def get_background_color(driver, text):
+    if text == None:
+        return "rgba(255,255,255,1)"
+    selenium_element = driver.find_element_by_xpath(xpath_soup(text))
+    background_color = selenium_element.value_of_css_property('background-color')
+    if eval(background_color[4:])[3] == 0:
+        background_color = get_background_color(driver, text.parent)
+    
+    return background_color
+
+def get_contrast_ratio(text_color, background_color):
+    # preparing the RGB values
+    r_1 = convert_rgb_8bit_value(text_color[0])
+    g_1 = convert_rgb_8bit_value(text_color[1])
+    b_1 = convert_rgb_8bit_value(text_color[2])
+    r_2 = convert_rgb_8bit_value(background_color[0])
+    g_2 = convert_rgb_8bit_value(background_color[1])
+    b_2 = convert_rgb_8bit_value(background_color[2])
+
+    # calculating the relative luminance
+    l_1 = 0.2126 * r_1 + 0.7152 * g_1 + 0.0722 * b_1
+    l_2 = 0.2126 * r_2 + 0.7152 * g_2 + 0.0722 * b_2
+
+    # check if l_1 or l_2 is lighter
+    if l_1 > l_2:
+        # calculating contrast ration when l_1 is the relative luminance of the lighter colour
+        contrast_ratio = (l_1 + 0.05) / (l_2 + 0.05)
+    else:
+        # calculating contrast ration when l_2 is the relative luminance of the lighter colour
+        contrast_ratio = (l_2 + 0.05) / (l_1 + 0.05)
+
+    return contrast_ratio
+
+def convert_rgb_8bit_value(single_rgb_8bit_value):
+    # dividing the 8-bit value through 255
+    srgb = single_rgb_8bit_value / 255
+
+    # check if the srgb value is lower than or equal to 0.03928
+    if srgb <= 0.03928:
+        return srgb / 12.92
+    else:
+        return ((srgb + 0.055) / 1.055) ** 2.4
+
 
 if __name__ == "__main__":
     main()
