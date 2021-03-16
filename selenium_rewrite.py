@@ -16,11 +16,11 @@ class VAT:
         self.url = url
         self.required_degree = required_degree
         self.driver = webdriver.Chrome(options=options)
-        self.driver.set_window_size(1120, 550)
+        self.driver.set_window_size(1980, 1080)
         self.driver.get(url)
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
-        self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0}
-        self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0}
+        self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0}
+        self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0}
 
         #self.link_list = []
 
@@ -40,6 +40,7 @@ class VAT:
         self.check_alt_texts()
         self.check_input_labels()
         self.check_buttons()
+        self.check_links()
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.driver.get_screenshot_as_file(dir_path + "/screenshots/" + str(time.time()) + ".png")
@@ -52,6 +53,7 @@ class VAT:
             link = self.driver.find_elements_by_tag_name("a")[i]
             if not link.is_displayed() or link.get_attribute("href") == "" or link.get_attribute("href") == None or str(urllib.parse.urljoin(self.url, link.get_attribute("href"))) == self.driver.current_url:
                 continue
+            self.driver.execute_script("arguments[0].style.height = '10px'; arguments[0].style.width = '10px';", link)
             link.click()
             if self.driver.current_url in self.visited_links or not self.url in self.driver.current_url:
                 self.driver.back()
@@ -149,10 +151,32 @@ class VAT:
                 print("Button is empty")
                 self.wrong["empty_buttons"] += 1
 
+    # 2.4.4 G91 & H30
+    # Empty link
+    def check_links(self):
+        # get all a elements
+        link_elements = self.page.find_all("a")
+        for link_element in link_elements:
+            # check if link has content
+            texts_in_link_element = link_element.findAll(text=True)
+            img_elements = link_element.findChildren("img" , recursive=False)
+            all_alt_texts_set = True
+            for img_element in img_elements:
+                alt_text = img_element.get_attribute_list('alt')[0]
+                if alt_text == None:
+                    all_alt_texts_set = False
+            if not texts_in_link_element == [] or (not img_elements == [] and all_alt_texts_set):
+                print("Link has content")
+                self.correct["empty_links"] += 1
+            else:
+                print("Link is empty")
+                self.wrong["empty_links"] += 1
+
     def calculate_result(self):
         # calculate correct and false implementations
         correct = sum(self.correct.values())
         false = sum(self.wrong.values())
+        print("\nResult")
         print("---------------------")
         print("Correct:", correct)
         for category in self.correct:
@@ -166,6 +190,7 @@ class VAT:
         if correct/(correct+false) >= self.required_degree:
             print("Accessibility test successful - can deploy")
         else:
+            sys.tracebacklimit = 0
             raise Exception("Too many accessibility errors - try fix them!")
 
 def main():
