@@ -7,6 +7,7 @@ import validators
 import urllib.parse
 import time
 import os
+from pathlib import Path
 
 class VAT:
     def __init__(self, url, required_degree):
@@ -23,6 +24,8 @@ class VAT:
         self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
 
         self.visited_links = []
+
+        Path("./screenshots").mkdir(parents=True, exist_ok=True)
 
 
     def test_subpages(self):
@@ -308,24 +311,24 @@ def get_background_color(driver, text):
 
 def get_contrast_ratio(text_color, background_color):
     # preparing the RGB values
-    r_1 = convert_rgb_8bit_value(text_color[0])
-    g_1 = convert_rgb_8bit_value(text_color[1])
-    b_1 = convert_rgb_8bit_value(text_color[2])
-    r_2 = convert_rgb_8bit_value(background_color[0])
-    g_2 = convert_rgb_8bit_value(background_color[1])
-    b_2 = convert_rgb_8bit_value(background_color[2])
+    r_text = convert_rgb_8bit_value(text_color[0])
+    g_text = convert_rgb_8bit_value(text_color[1])
+    b_text = convert_rgb_8bit_value(text_color[2])
+    r_background = convert_rgb_8bit_value(background_color[0])
+    g_background = convert_rgb_8bit_value(background_color[1])
+    b_background = convert_rgb_8bit_value(background_color[2])
 
     # calculating the relative luminance
-    l_1 = 0.2126 * r_1 + 0.7152 * g_1 + 0.0722 * b_1
-    l_2 = 0.2126 * r_2 + 0.7152 * g_2 + 0.0722 * b_2
+    luminance_text = 0.2126 * r_text + 0.7152 * g_text + 0.0722 * b_text
+    luminance_background = 0.2126 * r_background + 0.7152 * g_background + 0.0722 * b_background
 
-    # check if l_1 or l_2 is lighter
-    if l_1 > l_2:
-        # calculating contrast ration when l_1 is the relative luminance of the lighter colour
-        contrast_ratio = (l_1 + 0.05) / (l_2 + 0.05)
+    # check if luminance_text or luminance_background is lighter
+    if luminance_text > luminance_background:
+        # calculating contrast ration when luminance_text is the relative luminance of the lighter colour
+        contrast_ratio = (luminance_text + 0.05) / (luminance_background + 0.05)
     else:
-        # calculating contrast ration when l_2 is the relative luminance of the lighter colour
-        contrast_ratio = (l_2 + 0.05) / (l_1 + 0.05)
+        # calculating contrast ration when luminance_background is the relative luminance of the lighter colour
+        contrast_ratio = (luminance_background + 0.05) / (luminance_text + 0.05)
 
     return contrast_ratio
 
