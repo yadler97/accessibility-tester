@@ -11,19 +11,22 @@ from pathlib import Path
 
 class VAT:
     def __init__(self, url, required_degree):
-        options = Options()
-        options.headless = True
-
         self.url = url
         self.required_degree = required_degree
-        self.driver = webdriver.Chrome(options=options)
-        self.driver.set_window_size(1980, 1080)
-        self.driver.get(url)
-        self.page = BeautifulSoup(self.driver.page_source, "html.parser")
         self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
         self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
 
         self.visited_links = []
+
+
+    def start_driver(self):
+        options = Options()
+        options.headless = True
+
+        self.driver = webdriver.Chrome(options=options)
+        self.driver.set_window_size(1980, 1080)
+        self.driver.get(self.url)
+        self.page = BeautifulSoup(self.driver.page_source, "html.parser")
 
         Path("./screenshots").mkdir(parents=True, exist_ok=True)
 
@@ -65,9 +68,12 @@ class VAT:
     def check_doc_language(self):
         # check if language attribute exists and is not empty
         lang_attr = self.page.find("html").get_attribute_list("lang")[0]
-        if not lang_attr == None:
+        if not lang_attr == None and not lang_attr == "":
             print("Document language is set")
             self.correct["doc_language"] += 1
+        elif not lang_attr == None:
+            print("Document language is empty")
+            self.wrong["doc_language"] += 1
         else:
             print("Document language is missing")
             self.wrong["doc_language"] += 1
@@ -81,9 +87,12 @@ class VAT:
         for img_element in img_elements:
             # check if img element has an alternative text that is not empty
             alt_text = img_element.get_attribute_list('alt')[0]
-            if not alt_text == None:
+            if not alt_text == None and not alt_text == "":
                 print("Alt text is correct")
                 self.correct["alt_texts"] += 1
+            elif not alt_text == None:
+                print("Alt text is empty")
+                self.wrong["alt_texts"] += 1
             else:
                 print("Alt text is missing")
                 self.wrong["alt_texts"] += 1
@@ -244,6 +253,8 @@ def main():
         raise Exception("Accessibility level must be between 0 and 1")
 
     vat = VAT(url, required_degree)
+
+    vat.start_driver()
 
     vat.test_subpages()
 

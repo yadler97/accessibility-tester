@@ -1,5 +1,4 @@
 bs4
-webcolors
-cssutils
 selenium
 validators
+pytest
