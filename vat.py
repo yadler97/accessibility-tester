@@ -165,7 +165,7 @@ class VAT:
         for link_element in link_elements:
             # check if link has content
             texts_in_link_element = link_element.findAll(text=True)
-            img_elements = link_element.findChildren("img" , recursive=False)
+            img_elements = link_element.findChildren("img", recursive=False)
             all_alt_texts_set = True
             for img_element in img_elements:
                 alt_text = img_element.get_attribute_list('alt')[0]
