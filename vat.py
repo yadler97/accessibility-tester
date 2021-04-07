@@ -169,7 +169,7 @@ class VAT:
             all_alt_texts_set = True
             for img_element in img_elements:
                 alt_text = img_element.get_attribute_list('alt')[0]
-                if alt_text == None:
+                if alt_text == None or alt_text == "":
                     all_alt_texts_set = False
             if not texts_in_link_element == [] or (not img_elements == [] and all_alt_texts_set):
                 print("Link has content")

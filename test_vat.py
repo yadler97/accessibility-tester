@@ -119,7 +119,116 @@ def test_check_input_labels():
     assert test_vat.correct["input_labels"] == 1
 
 
-def test_get_contrast_ration():
+def test_check_buttons():
+    # input type text - should be ignored
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><input type='text'></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 0
+    assert test_vat.correct["empty_buttons"] == 0
+
+    # input type submit without value attribute - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><input type='submit'></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 1
+    assert test_vat.correct["empty_buttons"] == 0
+
+    # input type submit with empty value attribute - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><input type='submit' value=''></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 1
+    assert test_vat.correct["empty_buttons"] == 0
+
+    # input type submit with filled value attribute - should be correct
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><input type='submit' value='Submit'></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 0
+    assert test_vat.correct["empty_buttons"] == 1
+
+    # button element without text or title attribute - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><button></button></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 1
+    assert test_vat.correct["empty_buttons"] == 0
+
+    # button element with an empty other element - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><button><p></p></button></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 1
+    assert test_vat.correct["empty_buttons"] == 0
+
+    # button element with text - should be correct
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><button>Click here!</button></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 0
+    assert test_vat.correct["empty_buttons"] == 1
+
+    # button element with text inside another element - should be correct
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><button><p>Click here!</p></button></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 0
+    assert test_vat.correct["empty_buttons"] == 1
+
+    # button element with empty title attribute - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><button title=''></button></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 1
+    assert test_vat.correct["empty_buttons"] == 0
+
+    # button element with filled title attribute - should be correct
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><button title='Click here!'></button></body></html>", "html.parser")
+    test_vat.check_buttons()
+    assert test_vat.wrong["empty_buttons"] == 0
+    assert test_vat.correct["empty_buttons"] == 1
+
+
+def test_check_links():
+    # link element without text - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><a href='/'></a></body></html>", "html.parser")
+    test_vat.check_links()
+    assert test_vat.wrong["empty_links"] == 1
+    assert test_vat.correct["empty_links"] == 0
+
+    # link element with text - should be correct
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><a href='/'>Click here</a></body></html>", "html.parser")
+    test_vat.check_links()
+    assert test_vat.wrong["empty_links"] == 0
+    assert test_vat.correct["empty_links"] == 1
+
+    # link element with image element without alt attribute - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><a href='/'><img src=''></a></body></html>", "html.parser")
+    test_vat.check_links()
+    assert test_vat.wrong["empty_links"] == 1
+    assert test_vat.correct["empty_links"] == 0
+
+    # link element with image element with empty alt attribute - should be wrong
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><a href='/'><img alt='' src=''></a></body></html>", "html.parser")
+    test_vat.check_links()
+    assert test_vat.wrong["empty_links"] == 1
+    assert test_vat.correct["empty_links"] == 0
+
+    # link element with image element with filled alt attribute - should be correct
+    test_vat = vat.VAT("http://www.test.com/", 1)
+    test_vat.page = BeautifulSoup("<html><body><a href='/'><img alt='beautiful image' src=''></a></body></html>", "html.parser")
+    test_vat.check_links()
+    assert test_vat.wrong["empty_links"] == 0
+    assert test_vat.correct["empty_links"] == 1
+
+
+def test_get_contrast_ratio():
     # highest contrast
     text_color = (0,0,0)
     background_color = (255,255,255)
