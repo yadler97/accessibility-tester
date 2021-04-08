@@ -1,5 +1,7 @@
 import vat
 from bs4 import BeautifulSoup
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import multiprocessing
 
 def test_check_doc_language():
     # missing document language - should be wrong
@@ -228,6 +230,65 @@ def test_check_links():
     assert test_vat.correct["empty_links"] == 1
 
 
+def test_check_color_contrast():
+    webServer = HTTPServer((hostName, serverPort), ColorContrastTestServer)
+    proc = multiprocessing.Process(target=start_server, args=(webServer,))
+    proc.start()
+
+    # standard text and standard background - should be correct
+    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-1" % serverPort, 1)
+    test_vat.start_driver()
+    test_vat.check_color_contrast()
+    assert test_vat.wrong["color_contrast"] == 0
+    assert test_vat.correct["color_contrast"] == 1
+
+    # black text and red background - should be correct
+    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-2" % serverPort, 1)
+    test_vat.start_driver()
+    test_vat.check_color_contrast()
+    assert test_vat.wrong["color_contrast"] == 0
+    assert test_vat.correct["color_contrast"] == 1
+
+    # black text on grey background - should be wrong
+    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-3" % serverPort, 1)
+    test_vat.start_driver()
+    test_vat.check_color_contrast()
+    assert test_vat.wrong["color_contrast"] == 1
+    assert test_vat.correct["color_contrast"] == 0
+
+    # black text with font-size 18px on grey background - should be correct
+    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-4" % serverPort, 1)
+    test_vat.start_driver()
+    test_vat.check_color_contrast()
+    assert test_vat.wrong["color_contrast"] == 0
+    assert test_vat.correct["color_contrast"] == 1
+
+    # black bold text with font-size 14px on grey background - should be correct
+    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-5" % serverPort, 1)
+    test_vat.start_driver()
+    test_vat.check_color_contrast()
+    assert test_vat.wrong["color_contrast"] == 0
+    assert test_vat.correct["color_contrast"] == 1
+
+    # black strong text with font-size 14px on grey background - should be correct
+    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-6" % serverPort, 1)
+    test_vat.start_driver()
+    test_vat.check_color_contrast()
+    assert test_vat.wrong["color_contrast"] == 0
+    assert test_vat.correct["color_contrast"] == 1
+
+    # black text with font-size 14px on grey background - should be wrong
+    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-7" % serverPort, 1)
+    test_vat.start_driver()
+    test_vat.check_color_contrast()
+    assert test_vat.wrong["color_contrast"] == 1
+    assert test_vat.correct["color_contrast"] == 0
+
+    webServer.server_close()
+    proc.terminate()
+    proc.join()
+
+
 def test_get_contrast_ratio():
     # highest contrast
     text_color = (0,0,0)
@@ -243,3 +304,58 @@ def test_get_contrast_ratio():
     text_color = (0,0,0)
     background_color = (255,0,0)
     assert vat.get_contrast_ratio(text_color, background_color) == 5.252
+
+
+hostName = "localhost"
+serverPort = 45459
+
+class ColorContrastTestServer(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/color-contrast-test-case-1":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div><p>Some Text</p></div></body></html>", "utf-8"))
+
+        if self.path == "/color-contrast-test-case-2":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div style='background-color: red'><p style='color: black'>Some Text</p></div></body></html>", "utf-8"))
+
+        if self.path == "/color-contrast-test-case-3":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div style='background-color: #666666'><p style='color: #000000'>Some Text</p></div></body></html>", "utf-8"))
+
+        if self.path == "/color-contrast-test-case-4":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div style='background-color: #666666'><p style='color: #000000; font-size: 18px'>Some Text</p></div></body></html>", "utf-8"))
+
+        if self.path == "/color-contrast-test-case-5":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div style='background-color: #666666'><p style='color: #000000; font-size: 14px; font-weight: bold'>Some Text</p></div></body></html>", "utf-8"))
+
+        if self.path == "/color-contrast-test-case-6":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div style='background-color: #666666'><p style='color: #000000; font-size: 14px'><strong>Some Text</strong></p></div></body></html>", "utf-8"))
+
+        if self.path == "/color-contrast-test-case-7":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div style='background-color: #666666'><p style='color: #000000; font-size: 14px'>Some Text</p></div></body></html>", "utf-8"))
+
+def start_server(webServer):
+    print("Server started http://%s:%s" % (hostName, serverPort))
+    try:
+        webServer.serve_forever()
+    except KeyboardInterrupt:
+        pass

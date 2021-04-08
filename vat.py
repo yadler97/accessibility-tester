@@ -33,7 +33,7 @@ class VAT:
 
     def test_subpages(self):
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
-        print("\n" + self.driver.current_url + "\n---------------------")
+        print("\n\n" + self.driver.current_url + "\n---------------------")
         self.check_doc_language()
         self.check_alt_texts()
         self.check_input_labels()
@@ -69,13 +69,13 @@ class VAT:
         # check if language attribute exists and is not empty
         lang_attr = self.page.find("html").get_attribute_list("lang")[0]
         if not lang_attr == None and not lang_attr == "":
-            print("Document language is set")
+            print("  Document language is set")
             self.correct["doc_language"] += 1
         elif not lang_attr == None:
-            print("Document language is empty")
+            print("x Document language is empty")
             self.wrong["doc_language"] += 1
         else:
-            print("Document language is missing")
+            print("x Document language is missing")
             self.wrong["doc_language"] += 1
 
 
@@ -88,13 +88,13 @@ class VAT:
             # check if img element has an alternative text that is not empty
             alt_text = img_element.get_attribute_list('alt')[0]
             if not alt_text == None and not alt_text == "":
-                print("Alt text is correct")
+                print("  Alt text is correct", xpath_soup(img_element))
                 self.correct["alt_texts"] += 1
             elif not alt_text == None:
-                print("Alt text is empty")
+                print("x Alt text is empty", xpath_soup(img_element))
                 self.wrong["alt_texts"] += 1
             else:
-                print("Alt text is missing")
+                print("x Alt text is missing", xpath_soup(img_element))
                 self.wrong["alt_texts"] += 1
 
 
@@ -109,11 +109,11 @@ class VAT:
             if "type" in input_element.attrs and not input_element['type'] == "hidden" and not input_element['type'] == "submit" and not input_element['type'] == "reset" and not input_element['type'] == "button":
                 # check if input is of type image and has a alt text that is not empty
                 if input_element['type'] == "image" and "alt" in input_element.attrs and not input_element['alt'] == "":
-                    print("Input of type image labelled with alt text")
+                    print("  Input of type image labelled with alt text", xpath_soup(input_element))
                     self.correct["input_labels"] += 1
                 # check if input element uses aria-labelledby
                 elif "aria-labelledby" in input_element.attrs and not input_element['aria-labelledby'] == "":
-                    print("Input labelled with aria-labelledby attribute")
+                    print("  Input labelled with aria-labelledby attribute", xpath_soup(input_element))
                     self.correct["input_labels"] += 1
                 else:
                     # check if input element has a corresponding label element
@@ -123,10 +123,10 @@ class VAT:
                         if "for" in label_element.attrs and "id" in input_element.attrs and label_element['for'] == input_element['id']:
                             label_correct = True
                     if label_correct == True:
-                        print("Input labelled with label element")
+                        print("  Input labelled with label element", xpath_soup(input_element))
                         self.correct["input_labels"] += 1
                     else:
-                        print("Input not labelled at all")
+                        print("x Input not labelled at all", xpath_soup(input_element))
                         self.wrong["input_labels"] += 1
 
 
@@ -140,20 +140,20 @@ class VAT:
         for input_element in input_elements:
             # check if input element has a value attribute that is not empty
             if "value" in input_element.attrs and not input_element['value'] == "":
-                print("Button has content")
+                print("  Button has content", xpath_soup(input_element))
                 self.correct["empty_buttons"] += 1
             else:
-                print("Button is empty")
+                print("x Button is empty", xpath_soup(input_element))
                 self.wrong["empty_buttons"] += 1
 
         for button_element in button_elements:
             # check if the button has content or a title
             texts = button_element.findAll(text=True)
             if not texts == [] or ("title" in button_element.attrs and not button_element["title"] == ""):
-                print("Button has content")
+                print("  Button has content", xpath_soup(button_element))
                 self.correct["empty_buttons"] += 1
             else:
-                print("Button is empty")
+                print("x Button is empty", xpath_soup(button_element))
                 self.wrong["empty_buttons"] += 1
 
 
@@ -172,10 +172,10 @@ class VAT:
                 if alt_text == None or alt_text == "":
                     all_alt_texts_set = False
             if not texts_in_link_element == [] or (not img_elements == [] and all_alt_texts_set):
-                print("Link has content")
+                print("  Link has content", xpath_soup(link_element))
                 self.correct["empty_links"] += 1
             else:
-                print("Link is empty")
+                print("x Link is empty", xpath_soup(link_element))
                 self.wrong["empty_links"] += 1
 
 
@@ -193,7 +193,6 @@ class VAT:
             if not element_visible == "none" and (not text.name == "input" or (text.name == "input" and "type" in text.attrs and not text['type'] == "hidden")):
                 text_color = selenium_element.value_of_css_property('color')
                 background_color = get_background_color(self.driver, text)
-                print(text.name, text_color, background_color)
 
                 # calculate contrast between text color and background color
                 contrast = get_contrast_ratio(eval(text_color[4:]), eval(background_color[4:]))
@@ -204,19 +203,19 @@ class VAT:
 
                 
                 if not font_size == None and font_size.__contains__("px") and \
-                    (int(''.join(filter(str.isdigit, font_size))) >= 18 or ((font_weight == "bold" or font_weight == "bolder" or text.name == "strong") and int(''.join(filter(str.isdigit, font_size))) >= 14)):
+                    (int(''.join(filter(str.isdigit, font_size))) >= 18 or ((font_weight == "bold" or font_weight == "700" or font_weight == "800" or font_weight == "900" or text.name == "strong") and int(''.join(filter(str.isdigit, font_size))) >= 14)):
                     if contrast >= 3:
-                        print("Contrast meets minimum requirements")
+                        print("  Contrast meets minimum requirements", xpath_soup(text), text_color, background_color)
                         self.correct["color_contrast"] += 1
                     else:
-                        print("Contrast does not meet minimum requirements")
+                        print("x Contrast does not meet minimum requirements", xpath_soup(text), text_color, background_color)
                         self.wrong["color_contrast"] += 1
                 else:
                     if contrast >= 4.5:
-                        print("Contrast meets minimum requirements")
+                        print("  Contrast meets minimum requirements", xpath_soup(text), text_color, background_color)
                         self.correct["color_contrast"] += 1
                     else:
-                        print("Contrast does not meet minimum requirements")
+                        print("x Contrast does not meet minimum requirements", xpath_soup(text), text_color, background_color)
                         self.wrong["color_contrast"] += 1
 
 
