@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 
 class VAT:
-    def __init__(self, url, required_degree):
+    def __init__(self, url, required_degree=0):
         self.url = url
         self.required_degree = required_degree
         self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
@@ -223,6 +223,9 @@ class VAT:
         # calculate correct and false implementations
         correct = sum(self.correct.values())
         false = sum(self.wrong.values())
+        if correct == 0 and false == 0:
+            print("Nothing found")
+            return
         print("\nResult")
         print("---------------------")
         print("Correct:", correct)
