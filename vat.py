@@ -22,6 +22,7 @@ class VAT:
     def start_driver(self):
         options = Options()
         options.headless = True
+        options.add_argument("--log-level=3")
 
         self.driver = webdriver.Chrome(options=options)
         self.driver.set_window_size(1980, 1080)
