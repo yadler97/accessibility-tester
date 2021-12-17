@@ -2,6 +2,7 @@ import vat
 from bs4 import BeautifulSoup
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import multiprocessing
+import sys
 
 def test_check_doc_language():
     # missing document language - should be wrong
@@ -231,62 +232,66 @@ def test_check_links():
 
 
 def test_check_color_contrast():
-    webServer = HTTPServer((hostName, serverPort), ColorContrastTestServer)
-    proc = multiprocessing.Process(target=start_server, args=(webServer,))
-    proc.start()
+    # Test is not working on Windows, so it will be skipped if sys.platform equals win32
+    if sys.platform != 'win32':
+        webServer = HTTPServer((hostName, serverPort), ColorContrastTestServer)
+        proc = multiprocessing.Process(target=start_server, args=(webServer,))
+        proc.start()
 
-    # standard text and standard background - should be correct
-    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-1" % serverPort)
-    test_vat.start_driver()
-    test_vat.check_color_contrast()
-    assert test_vat.wrong["color_contrast"] == 0
-    assert test_vat.correct["color_contrast"] == 1
+        # standard text and standard background - should be correct
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-1" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 0
+        assert test_vat.correct["color_contrast"] == 1
 
-    # black text and red background - should be correct
-    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-2" % serverPort)
-    test_vat.start_driver()
-    test_vat.check_color_contrast()
-    assert test_vat.wrong["color_contrast"] == 0
-    assert test_vat.correct["color_contrast"] == 1
+        # black text and red background - should be correct
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-2" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 0
+        assert test_vat.correct["color_contrast"] == 1
 
-    # black text on grey background - should be wrong
-    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-3" % serverPort)
-    test_vat.start_driver()
-    test_vat.check_color_contrast()
-    assert test_vat.wrong["color_contrast"] == 1
-    assert test_vat.correct["color_contrast"] == 0
+        # black text on grey background - should be wrong
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-3" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 1
+        assert test_vat.correct["color_contrast"] == 0
 
-    # black text with font-size 18px on grey background - should be correct
-    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-4" % serverPort)
-    test_vat.start_driver()
-    test_vat.check_color_contrast()
-    assert test_vat.wrong["color_contrast"] == 0
-    assert test_vat.correct["color_contrast"] == 1
+        # black text with font-size 18px on grey background - should be correct
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-4" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 0
+        assert test_vat.correct["color_contrast"] == 1
 
-    # black bold text with font-size 14px on grey background - should be correct
-    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-5" % serverPort)
-    test_vat.start_driver()
-    test_vat.check_color_contrast()
-    assert test_vat.wrong["color_contrast"] == 0
-    assert test_vat.correct["color_contrast"] == 1
+        # black bold text with font-size 14px on grey background - should be correct
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-5" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 0
+        assert test_vat.correct["color_contrast"] == 1
 
-    # black strong text with font-size 14px on grey background - should be correct
-    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-6" % serverPort)
-    test_vat.start_driver()
-    test_vat.check_color_contrast()
-    assert test_vat.wrong["color_contrast"] == 0
-    assert test_vat.correct["color_contrast"] == 1
+        # black strong text with font-size 14px on grey background - should be correct
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-6" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 0
+        assert test_vat.correct["color_contrast"] == 1
 
-    # black text with font-size 14px on grey background - should be wrong
-    test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-7" % serverPort)
-    test_vat.start_driver()
-    test_vat.check_color_contrast()
-    assert test_vat.wrong["color_contrast"] == 1
-    assert test_vat.correct["color_contrast"] == 0
+        # black text with font-size 14px on grey background - should be wrong
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-7" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 1
+        assert test_vat.correct["color_contrast"] == 0
 
-    webServer.server_close()
-    proc.terminate()
-    proc.join()
+        webServer.server_close()
+        proc.terminate()
+        proc.join()
+    else:
+        print("sys.platform equals win32 - skipping test")
 
 
 def test_calculate_result(capsys):
