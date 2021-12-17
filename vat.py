@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 import sys
+from selenium.webdriver.common import by
 import validators
 import urllib.parse
 import time
@@ -47,10 +48,10 @@ class VAT:
 
         self.visited_links.append(self.driver.current_url)
 
-        link_list = self.driver.find_elements_by_tag_name("a")
+        link_list = self.driver.find_elements(by="tag name", value="a")
         for i in range(len(link_list)):
             self.driver.execute_script("elements = document.getElementsByTagName('a'); for (var element of elements) {element.setAttribute('target', '')}")
-            link = self.driver.find_elements_by_tag_name("a")[i]
+            link = self.driver.find_elements(by="tag name", value="a")[i]
             if not link.is_displayed() or link.get_attribute("href") == "" or link.get_attribute("href") == None or str(urllib.parse.urljoin(self.url, link.get_attribute("href"))) == self.driver.current_url:
                 continue
             self.driver.execute_script("arguments[0].style.height = '10px'; arguments[0].style.width = '10px';", link)
@@ -188,7 +189,7 @@ class VAT:
         input_elements = self.page.find_all("input")
         elements_with_text = texts_on_page + input_elements
         for text in elements_with_text:
-            selenium_element = self.driver.find_element_by_xpath(xpath_soup(text))
+            selenium_element = self.driver.find_element(by="xpath", value=xpath_soup(text))
             # exclude invisible texts
             element_visible = selenium_element.value_of_css_property('display')
             if not element_visible == "none" and (not text.name == "input" or (text.name == "input" and "type" in text.attrs and not text['type'] == "hidden")):
@@ -316,7 +317,7 @@ def extract_texts(soup):
 def get_background_color(driver, text):
     if text == None:
         return "rgba(255,255,255,1)"
-    selenium_element = driver.find_element_by_xpath(xpath_soup(text))
+    selenium_element = driver.find_element(by="xpath", value=xpath_soup(text))
     background_color = selenium_element.value_of_css_property('background-color')
     if eval(background_color[4:])[3] == 0:
         background_color = get_background_color(driver, text.parent)
