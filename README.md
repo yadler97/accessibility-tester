@@ -1,4 +1,4 @@
-[![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3101/)
 
 # Visual Accessibility Tester
 
@@ -13,14 +13,19 @@ A Python script to test a web page for six testing criteria regarding visual acc
 5. Empty buttons
 6. Missing document language
 
-Unfortunately, contrast testing does not yet work as desired, which is why it is deactivated by default.
-
 ## How to run
 
-First, install all dependencies with pip:
+First, you need ChromeDriver:
+
+    https://chromedriver.chromium.org/ (Make sure that the selected ChromeDriver version matches your current Chrome version)
+
+The path to your chromedriver.exe must be in your PATH.
+
+\
+Then, install all dependencies with pip:
 
     pip install -r requirements.txt
-
+\
 A test for a specific web page can then be executed with the following command:
 
     python vat.py <url> <required accessibility level>

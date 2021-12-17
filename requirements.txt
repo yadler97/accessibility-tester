@@ -1,4 +1,4 @@
-bs4
-webcolors
-cssutils
-requests
+beautifulsoup4==4.10.0
+selenium==4.1.0
+validators==0.18.2
+pytest==6.2.5
