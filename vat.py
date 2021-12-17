@@ -3,7 +3,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 import sys
-from selenium.webdriver.common import by
 import validators
 import urllib.parse
 import time
