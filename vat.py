@@ -273,7 +273,7 @@ def main():
         usage = "%(prog)s [OPTION] WEBPAGE",
         description = "A command line tool to test webpages for accessibility")
     parser.add_argument('webpage', help = "the webpage for which the test should be run")
-    parser.add_argument("-l", "--level", type=float, help = "the required accessibility level as a number between 0 and 1 with 1 not allowing any failures", required = False, default = 1.0)
+    parser.add_argument("-l", "--level", type=float, help = "the required accessibility level as a number between 0 and 1 with 1 not allowing any failures, default is 1", required = False, default = 1.0)
     parser.add_argument("-d", "--driver", type=str, help = "the driver to use for testing (possible values: Chrome, Firefox, Edge, IE, Opera, Safari), default is Chrome", required = False, default = "Chrome")
     
     argument = parser.parse_args()
