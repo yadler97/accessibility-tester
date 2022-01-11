@@ -1,18 +1,21 @@
 from bs4 import BeautifulSoup, Comment, Doctype
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 import time
 import sys
 import validators
 import urllib.parse
 import time
 import os
+import argparse
 from pathlib import Path
 
 class VAT:
-    def __init__(self, url, required_degree=0):
+    def __init__(self, url, required_degree=0, chosen_driver="Chrome"):
         self.url = url
         self.required_degree = required_degree
+        self.chosen_driver = chosen_driver
         self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
         self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
 
@@ -20,11 +23,31 @@ class VAT:
 
 
     def start_driver(self):
-        options = Options()
-        options.headless = True
-        options.add_argument("--log-level=3")
 
-        self.driver = webdriver.Chrome(options=options)
+        if self.chosen_driver == "Firefox":
+            options = FirefoxOptions()
+            options.headless = True
+            options.add_argument("--log-level=3")
+
+            self.driver = webdriver.Firefox(options=options)
+        else:
+            options = Options()
+            options.headless = True
+            options.add_argument("--log-level=3")
+
+            if self.chosen_driver == "Chrome":
+                self.driver = webdriver.Chrome(options=options)
+            elif self.chosen_driver == "Edge":
+                self.driver = webdriver.Edge(options=options)
+            elif self.chosen_driver == "IE":
+                self.driver = webdriver.Ie(options=options)
+            elif self.chosen_driver == "Opera":
+                self.driver = webdriver.Opera(options=options)
+            elif self.chosen_driver == "Safari":
+                self.driver = webdriver.Safari(options=options)
+            else:
+                raise Exception("Webdriver must be one of: Chrome, Firefox, Edge, IE, Opera, Safari")
+
         self.driver.set_window_size(1980, 1080)
         self.driver.get(self.url)
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
@@ -246,8 +269,18 @@ class VAT:
 
 
 def main():
-    url = sys.argv[1]
-    required_degree = float(sys.argv[2])
+    parser = argparse.ArgumentParser(
+        usage = "%(prog)s [OPTION] WEBPAGE",
+        description = "A command line tool to test webpages for accessibility")
+    parser.add_argument('webpage', help = "the webpage for which the test should be run")
+    parser.add_argument("-l", "--level", type=float, help = "the required accessibility level as a number between 0 and 1 with 1 not allowing any failures", required = False, default = 1.0)
+    parser.add_argument("-d", "--driver", type=str, help = "the driver to use for testing (possible values: Chrome, Firefox, Edge, IE, Opera, Safari), default is Chrome", required = False, default = "Chrome")
+    
+    argument = parser.parse_args()
+
+    url = argument.webpage
+    required_degree = argument.level
+    driver = argument.driver
 
     if not validators.url(url):
         raise Exception("Invalid URL")
@@ -255,7 +288,10 @@ def main():
     if not 0 <= required_degree <= 1:
         raise Exception("Accessibility level must be between 0 and 1")
 
-    vat = VAT(url, required_degree)
+    if not driver in ["Chrome", "Firefox", "Edge", "IE", "Opera", "Safari"]:
+        raise Exception("Webdriver must be one of: Chrome, Firefox, Edge, IE, Opera, Safari")
+
+    vat = VAT(url, required_degree, driver)
 
     vat.start_driver()
 
