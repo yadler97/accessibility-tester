@@ -287,6 +287,13 @@ def test_check_color_contrast():
         assert test_vat.wrong["color_contrast"] == 1
         assert test_vat.correct["color_contrast"] == 0
 
+        # rgb and rgba color values - should be correct
+        test_vat = vat.VAT("http://localhost:%s/color-contrast-test-case-8" % serverPort)
+        test_vat.start_driver()
+        test_vat.check_color_contrast()
+        assert test_vat.wrong["color_contrast"] == 0
+        assert test_vat.correct["color_contrast"] == 1
+
         webServer.server_close()
         proc.terminate()
         proc.join()
@@ -371,6 +378,12 @@ class ColorContrastTestServer(BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/html")
             self.end_headers()
             self.wfile.write(bytes("<html><body><div style='background-color: #666666'><p style='color: #000000; font-size: 14px'>Some Text</p></div></body></html>", "utf-8"))
+
+        if self.path == "/color-contrast-test-case-8":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(bytes("<html><body><div style='background-color: rgb(40, 40, 40)'><p style='color: rgba(240, 240, 240, 0); font-size: 14px'>Some Text</p></div></body></html>", "utf-8"))
 
 def start_server(webServer):
     print("Server started http://%s:%s" % (hostName, serverPort))
