@@ -386,7 +386,7 @@ def get_background_color(driver, text):
 
 def convert_to_rgba_value(color):
     if color[:4] != "rgba":
-        rgba_tuple = eval(color[3:]) + (0,)
+        rgba_tuple = eval(color[3:]) + (1,)
         color = "rgba" + str(rgba_tuple)
     
     return color
