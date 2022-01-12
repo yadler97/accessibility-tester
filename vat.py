@@ -15,11 +15,12 @@ import argparse
 from pathlib import Path
 
 class VAT:
-    def __init__(self, url, required_degree=0, chosen_driver="chrome", headless=True):
+    def __init__(self, url, required_degree=0, chosen_driver="chrome", headless=True, screenshots=False):
         self.url = url
         self.required_degree = required_degree
         self.chosen_driver = chosen_driver
         self.headless = headless
+        self.screenshots = screenshots
         self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
         self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
 
@@ -67,7 +68,8 @@ class VAT:
         self.driver.get(self.url)
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
 
-        Path("./screenshots").mkdir(parents=True, exist_ok=True)
+        if self.screenshots:
+            Path("./screenshots").mkdir(parents=True, exist_ok=True)
 
 
     def test_subpages(self):
@@ -80,8 +82,10 @@ class VAT:
         self.check_links()
         self.check_color_contrast()
 
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.driver.get_screenshot_as_file(dir_path + "/screenshots/" + str(time.time()) + ".png")
+        if self.screenshots:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            hostname = urllib.parse.urlparse(self.driver.current_url).hostname
+            self.driver.get_screenshot_as_file(dir_path + "/screenshots/" + hostname + "-" + str(time.time()) + ".png")
 
         self.visited_links.append(self.driver.current_url)
 
@@ -230,10 +234,7 @@ class VAT:
             # exclude invisible texts
             element_visible = selenium_element.value_of_css_property('display')
             if not element_visible == "none" and (not text.name == "input" or (text.name == "input" and "type" in text.attrs and not text['type'] == "hidden")):
-                text_color = selenium_element.value_of_css_property('color')
-                if text_color[:4] != "rgba":
-                    rgba_tuple = eval(text_color[3:]) + (0,)
-                    text_color = "rgba" + str(rgba_tuple)
+                text_color = convert_to_rgba_value(selenium_element.value_of_css_property('color'))
                 background_color = get_background_color(self.driver, text)
 
                 # calculate contrast between text color and background color
@@ -294,6 +295,7 @@ def main():
     parser.add_argument("-l", "--level", type=float, help = "the required accessibility level as a number between 0 and 1 with 1 not allowing any failures, default is 1", required = False, default = 1.0)
     parser.add_argument("-d", "--driver", type=str, help = "the driver to use for testing (possible values: Chrome, Firefox, Edge, Opera, Safari), default is Chrome", required = False, default = "Chrome")
     parser.add_argument("--headless", help = "defines if the webdriver should run in headless mode or not", required = False, action = "store_true")
+    parser.add_argument("-s", "--screenshots", help = "defines if the program should take screenshots of every page it visits or not", required = False, action = "store_true")
     
     argument = parser.parse_args()
 
@@ -301,6 +303,7 @@ def main():
     required_degree = argument.level
     driver = str(argument.driver).lower()
     run_headless = argument.headless
+    take_screenshots = argument.screenshots
 
     if not validators.url(url):
         raise Exception("Invalid URL")
@@ -311,7 +314,7 @@ def main():
     if not driver in ["chrome", "firefox", "edge", "opera", "safari"]:
         raise Exception("Webdriver must be one of: Chrome, Firefox, Edge, Opera, Safari")
 
-    vat = VAT(url, required_degree, driver, run_headless)
+    vat = VAT(url, required_degree, driver, run_headless, take_screenshots)
 
     vat.start_driver()
 
@@ -372,16 +375,21 @@ def extract_texts(soup):
 def get_background_color(driver, text):
     if text == None:
         return "rgba(255,255,255,1)"
+
     selenium_element = driver.find_element(by="xpath", value=xpath_soup(text))
-    background_color = selenium_element.value_of_css_property('background-color')
-    if background_color[:4] == "rgba":
-        if eval(background_color[4:])[3] == 0:
-            return get_background_color(driver, text.parent)
-    else:
-        rgba_tuple = eval(background_color[3:]) + (0,)
-        return "rgba" + str(rgba_tuple)
-    
+    background_color = convert_to_rgba_value(selenium_element.value_of_css_property('background-color'))
+
+    if eval(background_color[4:])[3] == 0:
+        return get_background_color(driver, text.parent)
+
     return background_color
+
+def convert_to_rgba_value(color):
+    if color[:4] != "rgba":
+        rgba_tuple = eval(color[3:]) + (0,)
+        color = "rgba" + str(rgba_tuple)
+    
+    return color
 
 def get_contrast_ratio(text_color, background_color):
     # preparing the RGB values
