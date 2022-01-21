@@ -1,3 +1,11 @@
+import time
+import sys
+import urllib.parse
+import os
+import argparse
+from pathlib import Path
+
+import validators
 from bs4 import BeautifulSoup, Comment, Doctype
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -5,16 +13,8 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.opera.options import Options as OperaOptions
 from selenium.webdriver.safari.options import Options as SafariOptions
-import time
-import sys
-import validators
-import urllib.parse
-import time
-import os
-import argparse
-from pathlib import Path
 
-class VAT:
+class AccessibilityTester:
     def __init__(self, url, required_degree=0, chosen_driver="chrome", headless=True, screenshots=False):
         self.url = url
         self.required_degree = required_degree
@@ -93,7 +93,7 @@ class VAT:
         for i in range(len(link_list)):
             self.driver.execute_script("elements = document.getElementsByTagName('a'); for (var element of elements) {element.setAttribute('target', '')}")
             link = self.driver.find_elements(by="tag name", value="a")[i]
-            if not link.is_displayed() or link.get_attribute("href") == "" or link.get_attribute("href") == None or str(urllib.parse.urljoin(self.url, link.get_attribute("href"))) == self.driver.current_url:
+            if not link.is_displayed() or link.get_attribute("href") == "" or link.get_attribute("href") is None or str(urllib.parse.urljoin(self.url, link.get_attribute("href"))) == self.driver.current_url:
                 continue
             self.driver.execute_script("arguments[0].style.height = '10px'; arguments[0].style.width = '10px';", link)
             link.click()
@@ -111,10 +111,10 @@ class VAT:
     def check_doc_language(self):
         # check if language attribute exists and is not empty
         lang_attr = self.page.find("html").get_attribute_list("lang")[0]
-        if not lang_attr == None and not lang_attr == "":
+        if not lang_attr is None and not lang_attr == "":
             print("  Document language is set")
             self.correct["doc_language"] += 1
-        elif not lang_attr == None:
+        elif not lang_attr is None:
             print("x Document language is empty")
             self.wrong["doc_language"] += 1
         else:
@@ -130,10 +130,10 @@ class VAT:
         for img_element in img_elements:
             # check if img element has an alternative text that is not empty
             alt_text = img_element.get_attribute_list('alt')[0]
-            if not alt_text == None and not alt_text == "":
+            if not alt_text is None and not alt_text == "":
                 print("  Alt text is correct", xpath_soup(img_element))
                 self.correct["alt_texts"] += 1
-            elif not alt_text == None:
+            elif not alt_text is None:
                 print("x Alt text is empty", xpath_soup(img_element))
                 self.wrong["alt_texts"] += 1
             else:
@@ -165,7 +165,7 @@ class VAT:
                         # check if "for" attribute of label element is identical to "id" of input element
                         if "for" in label_element.attrs and "id" in input_element.attrs and label_element['for'] == input_element['id']:
                             label_correct = True
-                    if label_correct == True:
+                    if label_correct:
                         print("  Input labelled with label element", xpath_soup(input_element))
                         self.correct["input_labels"] += 1
                     else:
@@ -212,7 +212,7 @@ class VAT:
             all_alt_texts_set = True
             for img_element in img_elements:
                 alt_text = img_element.get_attribute_list('alt')[0]
-                if alt_text == None or alt_text == "":
+                if alt_text is None or alt_text == "":
                     all_alt_texts_set = False
             if not texts_in_link_element == [] or (not img_elements == [] and all_alt_texts_set):
                 print("  Link has content", xpath_soup(link_element))
@@ -244,8 +244,8 @@ class VAT:
                 font_size = selenium_element.value_of_css_property('font-size')
                 font_weight = selenium_element.value_of_css_property('font-weight')
 
-                
-                if not font_size == None and font_size.__contains__("px") and \
+
+                if not font_size is None and font_size.__contains__("px") and \
                     (int(''.join(filter(str.isdigit, font_size))) >= 18 or ((font_weight == "bold" or font_weight == "700" or font_weight == "800" or font_weight == "900" or text.name == "strong") and int(''.join(filter(str.isdigit, font_size))) >= 14)):
                     if contrast >= 3:
                         print("  Contrast meets minimum requirements", xpath_soup(text), text_color, background_color)
@@ -296,7 +296,7 @@ def main():
     parser.add_argument("-d", "--driver", type=str, help = "the driver to use for testing (possible values: Chrome, Firefox, Edge, Opera, Safari), default is Chrome", required = False, default = "Chrome")
     parser.add_argument("--headless", help = "defines if the webdriver should run in headless mode or not", required = False, action = "store_true")
     parser.add_argument("-s", "--screenshots", help = "defines if the program should take screenshots of every page it visits or not", required = False, action = "store_true")
-    
+
     argument = parser.parse_args()
 
     url = argument.webpage
@@ -311,24 +311,24 @@ def main():
     if not 0 <= required_degree <= 1:
         raise Exception("Accessibility level must be between 0 and 1")
 
-    if not driver in ["chrome", "firefox", "edge", "opera", "safari"]:
+    if driver not in ["chrome", "firefox", "edge", "opera", "safari"]:
         raise Exception("Webdriver must be one of: Chrome, Firefox, Edge, Opera, Safari")
 
-    vat = VAT(url, required_degree, driver, run_headless, take_screenshots)
+    accessibility_tester = AccessibilityTester(url, required_degree, driver, run_headless, take_screenshots)
 
-    vat.start_driver()
+    accessibility_tester.start_driver()
 
-    vat.test_subpages()
+    accessibility_tester.test_subpages()
 
-    vat.driver.quit()
+    accessibility_tester.driver.quit()
 
-    vat.calculate_result()
+    accessibility_tester.calculate_result()
 
 
 
 # src: https://gist.github.com/ergoithz/6cf043e3fdedd1b94fcf
 def xpath_soup(element):
-    if element == None:
+    if element is None:
         return '/html'
     components = []
     child = element if element.name else element.parent
@@ -342,7 +342,7 @@ def xpath_soup(element):
             )
         child = parent
     components.reverse()
-    if components == []:
+    if not components:
         return '/html'
     return '/%s' % '/'.join(components)
 
@@ -360,7 +360,7 @@ def extract_texts(soup):
 
     # remove doctype
     doctype = soup2.find(text=lambda text:isinstance(text, Doctype))
-    if not doctype == None:
+    if not doctype is None:
         doctype.extract()
 
     # get all elements with text
@@ -373,7 +373,7 @@ def extract_texts(soup):
     return texts
 
 def get_background_color(driver, text):
-    if text == None:
+    if text is None:
         return "rgba(255,255,255,1)"
 
     selenium_element = driver.find_element(by="xpath", value=xpath_soup(text))
@@ -388,7 +388,7 @@ def convert_to_rgba_value(color):
     if color[:4] != "rgba":
         rgba_tuple = eval(color[3:]) + (1,)
         color = "rgba" + str(rgba_tuple)
-    
+
     return color
 
 def get_contrast_ratio(text_color, background_color):
@@ -421,8 +421,8 @@ def convert_rgb_8bit_value(single_rgb_8bit_value):
     # check if the srgb value is lower than or equal to 0.03928
     if srgb <= 0.03928:
         return srgb / 12.92
-    else:
-        return ((srgb + 0.055) / 1.055) ** 2.4
+
+    return ((srgb + 0.055) / 1.055) ** 2.4
 
 
 if __name__ == "__main__":
