@@ -15,12 +15,14 @@ from selenium.webdriver.opera.options import Options as OperaOptions
 from selenium.webdriver.safari.options import Options as SafariOptions
 
 class AccessibilityTester:
-    def __init__(self, url, required_degree=0, chosen_driver="chrome", headless=True, screenshots=False):
+    def __init__(self, url, required_degree=0, chosen_driver="chrome", headless=True, screenshots=False, browser_height=1080, browser_width=1920):
         self.url = url
         self.required_degree = required_degree
         self.chosen_driver = chosen_driver
         self.headless = headless
         self.screenshots = screenshots
+        self.browser_height = browser_height
+        self.browser_width = browser_width
         self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
         self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
 
@@ -64,7 +66,7 @@ class AccessibilityTester:
         else:
             raise Exception("Webdriver must be one of: Chrome, Firefox, Edge, Opera, Safari")
 
-        self.driver.set_window_size(1980, 1080)
+        self.driver.set_window_size(self.browser_width, self.browser_height)
         self.driver.get(self.url)
         self.page = BeautifulSoup(self.driver.page_source, "html.parser")
 
@@ -294,8 +296,10 @@ def main():
     parser.add_argument("webpage", help = "the webpage for which the test should be run")
     parser.add_argument("-l", "--level", type=float, help = "the required accessibility level as a number between 0 and 1 with 1 not allowing any failures, default is 1", required = False, default = 1.0)
     parser.add_argument("-d", "--driver", type=str, help = "the driver to use for testing (possible values: Chrome, Firefox, Edge, Opera, Safari), default is Chrome", required = False, default = "Chrome")
-    parser.add_argument("--headless", help = "defines if the webdriver should run in headless mode or not", required = False, action = "store_true")
-    parser.add_argument("-s", "--screenshots", help = "defines if the program should take screenshots of every page it visits or not", required = False, action = "store_true")
+    parser.add_argument("--headless", help = "defines if the webdriver should run in headless mode, default is False", required = False, action = "store_true")
+    parser.add_argument("-s", "--screenshots", help = "defines if the program should take screenshots of every page it visits, default is False", required = False, action = "store_true")
+    parser.add_argument("--height", type=int, help = "the height value of the window size the browser should use, default is 1080", required = False, default = 1080)
+    parser.add_argument("--width", type=int, help = "the width value of the window size the browser should use, default is 1920", required = False, default = 1920)
 
     argument = parser.parse_args()
 
@@ -304,6 +308,8 @@ def main():
     driver = str(argument.driver).lower()
     run_headless = argument.headless
     take_screenshots = argument.screenshots
+    browser_height = argument.height
+    browser_width = argument.width
 
     if not validators.url(url):
         raise Exception("Invalid URL")
@@ -314,7 +320,7 @@ def main():
     if driver not in ["chrome", "firefox", "edge", "opera", "safari"]:
         raise Exception("Webdriver must be one of: Chrome, Firefox, Edge, Opera, Safari")
 
-    accessibility_tester = AccessibilityTester(url, required_degree, driver, run_headless, take_screenshots)
+    accessibility_tester = AccessibilityTester(url, required_degree, driver, run_headless, take_screenshots, browser_height, browser_width)
 
     accessibility_tester.start_driver()
 
