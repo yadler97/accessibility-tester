@@ -15,7 +15,7 @@ from selenium.webdriver.opera.options import Options as OperaOptions
 from selenium.webdriver.safari.options import Options as SafariOptions
 
 class AccessibilityTester:
-    def __init__(self, url, required_degree=0, chosen_driver="chrome", headless=True, screenshots=False, browser_height=1080, browser_width=1920):
+    def __init__(self, url, required_degree=0, chosen_driver="chrome", headless=True, screenshots=False, browser_height=1080, browser_width=1920, follow=False):
         self.url = url
         self.required_degree = required_degree
         self.chosen_driver = chosen_driver
@@ -23,6 +23,7 @@ class AccessibilityTester:
         self.screenshots = screenshots
         self.browser_height = browser_height
         self.browser_width = browser_width
+        self.follow = follow
         self.correct = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
         self.wrong = {"doc_language":0, "alt_texts":0, "input_labels":0, "empty_buttons":0, "empty_links":0, "color_contrast":0}
 
@@ -89,23 +90,27 @@ class AccessibilityTester:
             hostname = urllib.parse.urlparse(self.driver.current_url).hostname
             self.driver.get_screenshot_as_file(dir_path + "/screenshots/" + hostname + "-" + str(time.time()) + ".png")
 
-        self.visited_links.append(self.driver.current_url)
+        if self.follow:
+            self.visited_links.append(self.driver.current_url)
 
-        link_list = self.driver.find_elements(by="tag name", value="a")
-        for i in range(len(link_list)):
-            self.driver.execute_script("elements = document.getElementsByTagName('a'); for (var element of elements) {element.setAttribute('target', '')}")
-            link = self.driver.find_elements(by="tag name", value="a")[i]
-            if not link.is_displayed() or link.get_attribute("href") == "" or link.get_attribute("href") is None or str(urllib.parse.urljoin(self.url, link.get_attribute("href"))) == self.driver.current_url:
-                continue
-            self.driver.execute_script("arguments[0].style.height = '10px'; arguments[0].style.width = '10px';", link)
-            link.click()
-            if self.driver.current_url in self.visited_links or not self.url in self.driver.current_url:
-                self.driver.back()
-                continue
+            link_list = self.driver.find_elements(by="tag name", value="a")
+            for i in range(len(link_list)):
+                self.driver.execute_script("elements = document.getElementsByTagName('a'); for (var element of elements) {element.setAttribute('target', '')}")
+                link = self.driver.find_elements(by="tag name", value="a")[i]
+                full_link = str(urllib.parse.urljoin(self.url, link.get_attribute("href")))
+                if not link.is_displayed() or link.get_attribute("href") == "" or link.get_attribute("href") is None or full_link == self.driver.current_url or full_link in self.visited_links:
+                    continue
+                link_url = link.get_attribute("href")
+                self.driver.execute_script("window.open('');")
+                self.driver.switch_to.window(self.driver.window_handles[len(self.driver.window_handles)-1])
+                self.driver.get(link_url)
+                if self.driver.current_url in self.visited_links or not urllib.parse.urlparse(self.url).hostname in self.driver.current_url:
+                    self.driver.switch_to.window(self.driver.window_handles[self.driver.window_handles.index(self.driver.current_window_handle)-1])
+                    continue
 
-            self.test_subpages()
+                self.test_subpages()
 
-            self.driver.back()
+            self.driver.switch_to.window(self.driver.window_handles[self.driver.window_handles.index(self.driver.current_window_handle)-1])
 
 
     # 3.1.1 H57
@@ -151,15 +156,29 @@ class AccessibilityTester:
         label_elements = self.page.find_all("label")
         for input_element in input_elements:
             # exclude input element of type hidden, submit, reset and button
-            if "type" in input_element.attrs and not input_element['type'] == "hidden" and not input_element['type'] == "submit" and not input_element['type'] == "reset" and not input_element['type'] == "button":
+            if ("type" in input_element.attrs and not input_element['type'] == "hidden" and not input_element['type'] == "submit" and not input_element['type'] == "reset" and not input_element['type'] == "button") or "type" not in input_element.attrs:
                 # check if input is of type image and has a alt text that is not empty
-                if input_element['type'] == "image" and "alt" in input_element.attrs and not input_element['alt'] == "":
+                if "type" in input_element.attrs and input_element['type'] == "image" and "alt" in input_element.attrs and not input_element['alt'] == "":
                     print("  Input of type image labelled with alt text", xpath_soup(input_element))
+                    self.correct["input_labels"] += 1
+                # check if input element uses aria-label
+                elif "aria-label" in input_element.attrs and not input_element['aria-label'] == "":
+                    print("  Input labelled with aria-label attribute", xpath_soup(input_element))
                     self.correct["input_labels"] += 1
                 # check if input element uses aria-labelledby
                 elif "aria-labelledby" in input_element.attrs and not input_element['aria-labelledby'] == "":
-                    print("  Input labelled with aria-labelledby attribute", xpath_soup(input_element))
-                    self.correct["input_labels"] += 1
+                    label_element = self.page.find(id=input_element['aria-labelledby'])
+                    if not label_element == None:
+                        texts_in_label_element = label_element.findAll(text=True)
+                        if not texts_in_label_element == []:
+                            print("  Input labelled with aria-labelledby attribute", xpath_soup(input_element))
+                            self.correct["input_labels"] += 1
+                        else:
+                            print("x Input labelled with aria-labelledby attribute, but related label has no text", xpath_soup(input_element))
+                            self.wrong["input_labels"] += 1
+                    else:
+                        print("x Input labelled with aria-labelledby attribute, but related label does not exist", xpath_soup(input_element))
+                        self.wrong["input_labels"] += 1       
                 else:
                     # check if input element has a corresponding label element
                     label_correct = False
@@ -300,6 +319,7 @@ def main():
     parser.add_argument("-s", "--screenshots", help = "defines if the program should take screenshots of every page it visits, default is False", required = False, action = "store_true")
     parser.add_argument("--height", type=int, help = "the height value of the window size the browser should use, default is 1080", required = False, default = 1080)
     parser.add_argument("--width", type=int, help = "the width value of the window size the browser should use, default is 1920", required = False, default = 1920)
+    parser.add_argument("-f", "--follow", help = "defines if the program should also test subpages that are linked on the main page, default is False", required = False, action = "store_true")
 
     argument = parser.parse_args()
 
@@ -310,6 +330,7 @@ def main():
     take_screenshots = argument.screenshots
     browser_height = argument.height
     browser_width = argument.width
+    should_follow = argument.follow
 
     if not validators.url(url):
         raise Exception("Invalid URL")
@@ -320,7 +341,7 @@ def main():
     if driver not in ["chrome", "firefox", "edge", "opera", "safari"]:
         raise Exception("Webdriver must be one of: Chrome, Firefox, Edge, Opera, Safari")
 
-    accessibility_tester = AccessibilityTester(url, required_degree, driver, run_headless, take_screenshots, browser_height, browser_width)
+    accessibility_tester = AccessibilityTester(url, required_degree, driver, run_headless, take_screenshots, browser_height, browser_width, should_follow)
 
     accessibility_tester.start_driver()
 

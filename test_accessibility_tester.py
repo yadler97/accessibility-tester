@@ -99,9 +99,23 @@ def test_check_input_labels():
     assert test_accessibility_tester.wrong["input_labels"] == 1
     assert test_accessibility_tester.correct["input_labels"] == 0
 
-    # input type text with filled aria-labelledby attribute - should be correct
+    # input type text with filled aria-labelledby attribute, but related label does not exist - should be wrong
     test_accessibility_tester = accessibility_tester.AccessibilityTester("test URL")
-    test_accessibility_tester.page = BeautifulSoup("<html><body><input type='text' aria-labelledby='This is an aria-labelledby attribute'></body></html>", "html.parser")
+    test_accessibility_tester.page = BeautifulSoup("<html><body><input type='text' aria-labelledby='label'></body></html>", "html.parser")
+    test_accessibility_tester.check_input_labels()
+    assert test_accessibility_tester.wrong["input_labels"] == 1
+    assert test_accessibility_tester.correct["input_labels"] == 0
+
+    # input type text with filled aria-labelledby attribute, but related label has no text - should be wrong
+    test_accessibility_tester = accessibility_tester.AccessibilityTester("test URL")
+    test_accessibility_tester.page = BeautifulSoup("<html><body><input type='text' aria-labelledby='label'><p id='label'></p></body></html>", "html.parser")
+    test_accessibility_tester.check_input_labels()
+    assert test_accessibility_tester.wrong["input_labels"] == 1
+    assert test_accessibility_tester.correct["input_labels"] == 0
+
+    # input type text with filled aria-labelledby attribute and correct related label - should be correct
+    test_accessibility_tester = accessibility_tester.AccessibilityTester("test URL")
+    test_accessibility_tester.page = BeautifulSoup("<html><body><input type='text' aria-labelledby='label'><p id='label'>Label</p></body></html>", "html.parser")
     test_accessibility_tester.check_input_labels()
     assert test_accessibility_tester.wrong["input_labels"] == 0
     assert test_accessibility_tester.correct["input_labels"] == 1
@@ -126,6 +140,13 @@ def test_check_input_labels():
     test_accessibility_tester.check_input_labels()
     assert test_accessibility_tester.wrong["input_labels"] == 0
     assert test_accessibility_tester.correct["input_labels"] == 1
+
+    # no specified input type with no labels - should be wrong
+    test_accessibility_tester = accessibility_tester.AccessibilityTester("test URL")
+    test_accessibility_tester.page = BeautifulSoup("<html><body><input></body></html>", "html.parser")
+    test_accessibility_tester.check_input_labels()
+    assert test_accessibility_tester.wrong["input_labels"] == 1
+    assert test_accessibility_tester.correct["input_labels"] == 0
 
 
 def test_check_buttons():
