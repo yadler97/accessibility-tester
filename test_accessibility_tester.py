@@ -266,56 +266,56 @@ def test_check_color_contrast():
         proc.start()
 
         # standard text and standard background - should be correct
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-1" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-1")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 0
         assert test_accessibility_tester.correct["color_contrast"] == 1
 
         # black text and red background - should be correct
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-2" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-2")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 0
         assert test_accessibility_tester.correct["color_contrast"] == 1
 
         # black text on grey background - should be wrong
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-3" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-3")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 1
         assert test_accessibility_tester.correct["color_contrast"] == 0
 
         # black text with font-size 18px on grey background - should be correct
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-4" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-4")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 0
         assert test_accessibility_tester.correct["color_contrast"] == 1
 
         # black bold text with font-size 14px on grey background - should be correct
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-5" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-5")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 0
         assert test_accessibility_tester.correct["color_contrast"] == 1
 
         # black strong text with font-size 14px on grey background - should be correct
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-6" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-6")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 0
         assert test_accessibility_tester.correct["color_contrast"] == 1
 
         # black text with font-size 14px on grey background - should be wrong
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-7" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-7")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 1
         assert test_accessibility_tester.correct["color_contrast"] == 0
 
         # rgb and rgba color values - should be correct
-        test_accessibility_tester = accessibility_tester.AccessibilityTester("http://localhost:%s/color-contrast-test-case-8" % SERVER_PORT)
+        test_accessibility_tester = accessibility_tester.AccessibilityTester(f"http://{HOST_NAME}:{SERVER_PORT}/color-contrast-test-case-8")
         test_accessibility_tester.start_driver()
         test_accessibility_tester.check_color_contrast()
         assert test_accessibility_tester.wrong["color_contrast"] == 0
@@ -360,7 +360,7 @@ def test_get_contrast_ratio():
 
 
 class ColorContrastTestServer(BaseHTTPRequestHandler):
-    def do_get(self):
+    def do_GET(self):
         if self.path == "/color-contrast-test-case-1":
             self.send_response(200)
             self.send_header("Content-type", "text/html")
@@ -410,7 +410,7 @@ class ColorContrastTestServer(BaseHTTPRequestHandler):
             self.wfile.write(bytes("<html><body><div style='background-color: rgb(40, 40, 40)'><p style='color: rgba(240, 240, 240, 0); font-size: 14px'>Some Text</p></div></body></html>", "utf-8"))
 
 def start_server(web_server):
-    print("Server started http://%s:%s" % (HOST_NAME, SERVER_PORT))
+    print("Server started http://{HOST_NAME}:{SERVER_PORT}")
     try:
         web_server.serve_forever()
     except KeyboardInterrupt:
